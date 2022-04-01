@@ -1,0 +1,14 @@
+RewriteEngine On
+RewriteBase /
+
+# Serve existing files
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Otherwise use front controller
+RewriteRule ^ index.php [L]
+
+# One year for static assets
+<filesMatch ".(css|jpg|jpeg|png|gif|js|ico)$">
+Header set Cache-Control "max-age=31536000, public"
+</filesMatch>

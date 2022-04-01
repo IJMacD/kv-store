@@ -1,0 +1,10 @@
+services:
+  web:
+    build: .
+    image: kv-store
+    ports:
+      - 8010:80
+    env_file: .env.local
+    volumes:
+      - ./src:/var/www/html
+      - ./data:/var/www/data

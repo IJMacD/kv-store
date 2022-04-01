@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    image: kv-store
+    ports:
+      - 8004:80
+    restart: always
+    env_file: .env
+    volumes:
+      - data:/var/www/data
+volumes:
+  data:
