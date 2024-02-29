@@ -1,0 +1,19 @@
+appVersion: ""
+hostname: kv.ijmacd.com
+mariadb:
+  auth:
+    database: kv
+    username: kv_user
+  initdbScriptsConfigMap: kv-store-mariadb-init
+web:
+  replicaCount: 1
+  repository:
+    image: docker.io/ijmacd/kv-store
+    tag: ""
+  smtp:
+    server: email-smtp.us-east-1.amazonaws.com
+    user: AKIAWKM4MGHVDE3VTL5K
+  tls:
+    enabled: false
+  local:
+    enabled: false

@@ -1,6 +1,7 @@
 <?php
 
-class Response {
+class Response
+{
     private $status_code = 200;
     private $content = null;
     private $headers = [
@@ -14,19 +15,22 @@ class Response {
         }
     }
 
-    public function statusCode ($status_code) {
+    public function statusCode($status_code)
+    {
         $this->status_code = $status_code;
 
         return $this;
     }
 
-    public function header ($name, $value) {
+    public function header($name, $value)
+    {
         $this->headers[$name] = $value;
 
         return $this;
     }
 
-    public function setContent ($content, $content_type, $status_code = null) {
+    public function setContent($content, $content_type, $status_code = null)
+    {
         if ($status_code) {
             $this->status_code = $status_code;
         }
@@ -38,14 +42,24 @@ class Response {
         return $this;
     }
 
-    public function text ($content, $status_code = null) {
+    public function text($content, $status_code = null)
+    {
         if (is_array($content)) {
             $content = implode("\n", $content);
         }
         return $this->setContent($content, "text/plain", $status_code);
     }
 
-    public function json ($content, $numeric_check = false, $status_code = null) {
+    public function html($content, $status_code = null)
+    {
+        if (is_array($content)) {
+            $content = implode("", $content);
+        }
+        return $this->setContent($content, "text/html", $status_code);
+    }
+
+    public function json($content, $numeric_check = false, $status_code = null)
+    {
         return $this->setContent(
             json_encode($content, $numeric_check ? JSON_NUMERIC_CHECK : 0),
             "application/json",
@@ -53,7 +67,8 @@ class Response {
         );
     }
 
-    public function csv ($content, $headers = null, $status_code = null) {
+    public function csv($content, $headers = null, $status_code = null)
+    {
         $lines = [];
 
         if (!is_array($content)) {
@@ -73,19 +88,21 @@ class Response {
         return $this->setContent(implode("\n", $lines), "text/csv", $status_code);
     }
 
-    public function autoContent ($content, $request = new Request(), $status_code = null) {
-        if ($request->isAccepted("text/plain")) {
+    public function autoContent($content, $request = new Request(), $status_code = null)
+    {
+        if ($request->isAccepted("text/plain", true)) {
             return $this->text($content, $status_code);
         }
 
-        if ($request->isAccepted("text/csv")) {
+        if ($request->isAccepted("text/csv", true)) {
             return $this->csv($content, status_code: $status_code);
         }
 
         return $this->json($content, $status_code);
     }
 
-    public function send () {
+    public function send()
+    {
         $this->sendStatusHeader();
 
         foreach ($this->headers as $header => $value) {
@@ -95,7 +112,8 @@ class Response {
         echo $this->content;
     }
 
-    private function sendStatusHeader () {
+    private function sendStatusHeader()
+    {
         $message = [
             "200" => "OK",
             "201" => "Created",
@@ -120,21 +138,21 @@ class Response {
     }
 }
 
-function get_csv_headers ($object) {
+function get_csv_headers($object)
+{
     return is_array($object) ? array_keys($object) : (
         is_object($object) ? array_keys((array)$object) : ["value"]
     );
 }
 
-function get_csv_values ($object, $headers) {
+function get_csv_values($object, $headers)
+{
     return array_map(function ($key) use ($object) {
         if (is_array($object)) {
             $val = $object[$key];
-        }
-        else if (is_object($object)) {
+        } else if (is_object($object)) {
             $val = $object->$key;
-        }
-        else {
+        } else {
             return $object;
         }
 
