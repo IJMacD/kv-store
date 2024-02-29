@@ -1,0 +1,33 @@
+Buckets
+-------
+- name (PK)
+- created_date
+- enabled
+
+test_bucket
+
+Auth
+----
+- id
+- bucket_name
+- auth_type (public, basic, bearer)
+- identifier
+- secret
+- expires_date
+- can_list
+- can_read
+- can_create
+- can_edit
+- can_delete
+
+1,test_bucket,public,NULL,NULL,NULL,1,1,0,0,0
+2,test_bucket,basic,NULL,test,$kkg$kjhjkghfkjhgf,1,1,1,1,1
+3,test_bucket,bearer,2022-03-30,NULL,kq75fwuyfbtywtbrkwy,1,1,1,1,1
+
+Objects
+-------
+- id
+- bucket_name
+- key
+- value
+- created_date

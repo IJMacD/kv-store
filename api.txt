@@ -1,0 +1,17 @@
+GET     /bucket/
+POST    /bucket/
+    201 Created
+    Location: /bucket/aaa00
+PUT     /bucket/key
+DELETE  /bucket/key
+
+Bucket Options
+--------------
+Auth: Public, HTTP Basic, HTTP Bearer, KEY query param
+Privacy: {Private|Public} {List|Read|Write}
+
+God Mode
+--------
+
+Create buckets
+Update Privacy
