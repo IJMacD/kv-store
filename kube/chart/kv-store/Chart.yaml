@@ -1,0 +1,9 @@
+apiVersion: v2
+description: A helm chart for xampp
+name: xampp
+type: application
+version: 1.0.0
+dependencies:
+  - name: mariadb
+    version: ~14.1.4
+    repository: https://charts.bitnami.com/bitnami

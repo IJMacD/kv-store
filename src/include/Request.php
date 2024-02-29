@@ -1,14 +1,26 @@
 <?php
 
-class Request {
+class Request
+{
     private $headers;
     private $rawBody;
 
-    private function getMethod () {
+    private function getMethod()
+    {
         return strtolower($_SERVER['REQUEST_METHOD']);
     }
 
-    public function getQueryParam ($name, $default = null) {
+    public function getRequestParam($name, $default = null)
+    {
+        if (isset($_REQUEST[$name])) {
+            return $_REQUEST[$name];
+        }
+
+        return $default;
+    }
+
+    public function getQueryParam($name, $default = null)
+    {
         if (isset($_GET[$name])) {
             return $_GET[$name];
         }
@@ -16,7 +28,8 @@ class Request {
         return $default;
     }
 
-    private function getContentType () {
+    private function getContentType()
+    {
         if (isset($_SERVER['CONTENT_TYPE'])) {
             return explode(";", $_SERVER['CONTENT_TYPE'])[0];
         }
@@ -24,14 +37,16 @@ class Request {
         return null;
     }
 
-    public function getHeaders () {
+    public function getHeaders()
+    {
         if (!$this->headers) {
             $this->headers = apache_request_headers();
         }
         return $this->headers;
     }
 
-    public function getHeader ($name, $default = null) {
+    public function getHeader($name, $default = null)
+    {
         $headers = $this->getHeaders();
 
         if (isset($headers[$name])) {
@@ -41,7 +56,8 @@ class Request {
         return $default;
     }
 
-    public function getBody () {
+    public function getBody()
+    {
         $method = $this->getMethod();
 
         if ($method === "get") {
@@ -74,7 +90,8 @@ class Request {
         throw new Exception("[Request] Unsupported body");
     }
 
-    public function isAccepted ($type) {
+    public function isAccepted($type, $explicit = false)
+    {
         $accepted_list = $this->getHeader("Accept");
 
         if (!$accepted_list) {
@@ -90,7 +107,7 @@ class Request {
                 return true;
             }
 
-            if ($a === "*/*") {
+            if ($a === "*/*" && !$explicit) {
                 return true;
             }
         }

@@ -1,6 +1,7 @@
 <?php
 
-class BucketObject {
+class BucketObject
+{
     var string $key;
     var mixed $value;
     var DateTimeJSON $created;
@@ -17,7 +18,7 @@ class BucketObject {
 
         $object->key = $array["key"];
         $object->value = json_decode($array["value"]);
-        $object->created = new DateTimeJSON($array["created_date"]);
+        $object->created = new DateTimeJSON($array["created_at"]);
 
         return $object;
     }

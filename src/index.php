@@ -1,14 +1,13 @@
 <?php
 
 include "vendor/autoload.php";
-include "include/conf.php";
 
 // Router::setController("/{bucket}/{key}", ObjectController::class);
 // Router::setController("/{bucket}", BucketController::class);
 
-Router::get("/god", 405);
-Router::post("/god", [GodController::class, "handle"]);
+Router::get("/", [WelcomeController::class, "index"]);
 
+Router::post("/", [BucketController::class, "createBucket"]);
 Router::get("/{bucket}", [BucketController::class, "listObjects"]);
 Router::post("/{bucket}", [BucketController::class, "createObject"]);
 
