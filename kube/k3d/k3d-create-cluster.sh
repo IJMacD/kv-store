@@ -43,8 +43,8 @@ k3d kubeconfig merge ${APPNAME} --output ${KUBECONFIG}
 
 source $SCRIPT_DIR/create-tls-secret.sh
 
-# for f in "${SCRIPT_DIR}/secrets/*"; do
-#   [ -e "$f" ] && \
-#     echo "no secrets to apply" || \
-#     kubectl apply -f $f --namespace ${APPNAME}
-# done
+for f in "${SCRIPT_DIR}/secrets/*"; do
+  [ -e "$f" ] && \
+    echo "no secrets to apply" || \
+    kubectl apply -f $f --namespace ${APPNAME}
+done

@@ -3,6 +3,7 @@
 namespace KVStore\Models;
 
 use KVStore\Database;
+use PDO;
 
 class Bucket
 {
@@ -16,26 +17,43 @@ class Bucket
     /**
      * Get an array of keys in this bucket
      */
-    public function getObjectKeys($since = null)
+    public function getObjectKeys($since = null, $limit = 10000, $prefix = null)
     {
         $db = Database::getSingleton();
+
+        $where = '"bucket_name" = :name';
+
+        if ($since) {
+            $where .= ' AND "created_at" > :since';
+        }
+
+        if ($prefix) {
+            $where .= ' AND "key" LIKE :prefix';
+        }
 
         $sql =
             'SELECT
                 "key"
             FROM objects
                 JOIN buckets USING (bucket_id)
-            WHERE "bucket_name" = :name
+            WHERE ' . $where . '
+            LIMIT :limit
             ';
-        $params = ["name" => $this->name];
-
-        if ($since) {
-            $sql .= ' AND "created_at" > :since';
-            $params["since"] = $since;
-        }
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($params);
+
+        $stmt->bindValue("name", $this->name);
+        $stmt->bindValue("limit", $limit, PDO::PARAM_INT);
+
+        if ($since) {
+            $stmt->bindValue("since", $since);
+        }
+
+        if ($prefix) {
+            $stmt->bindValue("prefix", $prefix . "%");
+        }
+
+        $stmt->execute();
 
         $result = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
@@ -46,7 +64,8 @@ class Bucket
         return [];
     }
 
-    public function getObjectsMeta($since = null)
+    // TODO: handle extra params
+    public function getObjectsMeta($since = null, $limit = 10000, $prefix = null)
     {
         $db = Database::getSingleton();
 
@@ -76,27 +95,47 @@ class Bucket
         return [];
     }
 
-    public function getObjects($since = null)
+    public function getObjects($since = null, $limit = 10000, $prefix = null)
     {
         $db = Database::getSingleton();
+
+        $where = '"bucket_name" = :name';
+
+        if ($since) {
+            $where .= ' AND "created_at" > :since';
+        }
+
+        if ($prefix) {
+            $where .= ' AND "key" LIKE :prefix';
+        }
 
         $sql =
             'SELECT
                 "key",
-                "value",
+                COALESCE("value","numeric_value") AS "value",
                 "objects"."created_at"
             FROM objects
                 JOIN buckets USING (bucket_id)
-            WHERE "bucket_name" = :name';
-        $params = ["name" => $this->name];
+            WHERE ' . $where . '
+            ORDER BY "created_at"
+            LIMIT :limit
+            ';
 
-        if ($since) {
-            $sql .= ' AND "created_at" > :since';
-            $params["since"] = $since;
-        }
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($params);
+
+        $stmt->bindValue("name", $this->name);
+        $stmt->bindValue("limit", $limit, PDO::PARAM_INT);
+
+        if ($since) {
+            $stmt->bindValue("since", $since);
+        }
+
+        if ($prefix) {
+            $stmt->bindValue("prefix", $prefix . "%");
+        }
+
+        $stmt->execute();
 
         $result = $stmt->fetchAll();
 
@@ -114,7 +153,7 @@ class Bucket
         $stmt = $db->prepare(
             'SELECT
                 "key",
-                "value",
+                COALESCE("value","numeric_value") AS "value",
                 "objects"."created_at"
             FROM objects
                 JOIN buckets USING (bucket_id)
@@ -169,7 +208,7 @@ class Bucket
 
     /**
      * @param string $key
-     * @param object $object
+     * @param object|string $object
      */
     public function createObject($key, $object)
     {
@@ -177,10 +216,33 @@ class Bucket
 
         $bucket_id = self::getBucketID($this->name);
 
-        $stmt = $db->prepare('INSERT INTO objects ("bucket_id", "key", "value") VALUES (:bucket_id, :key, :value)');
+        $stmt = $db->prepare('INSERT INTO objects ("bucket_id", "key", "value", "numeric_value", "type") VALUES (:bucket_id, :key, :value, :number, :type)');
 
-        // TODO: validate type
-        return $stmt->execute(["bucket_id" => $bucket_id, "key" => $key, "value" => json_encode($object)]);
+        $value = null;
+        $number = null;
+        $type = "TEXT";
+
+        if (is_array($object) || is_object($object)) {
+            $value = json_encode($object);
+            $type = "JSON";
+        } else if (is_numeric($object)) {
+            $number = $object;
+            $type = "NUMBER";
+        } elseif (json_decode($object)) {
+            $value = $object;
+            $type = "JSON";
+        } else {
+            $value = $object;
+            $type = "TEXT";
+        }
+
+        return $stmt->execute([
+            "bucket_id" => $bucket_id,
+            "key" => $key,
+            "value" => $value,
+            "number" => $number,
+            "type" => $type,
+        ]);
     }
 
     /**

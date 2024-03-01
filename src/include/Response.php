@@ -47,7 +47,11 @@ class Response
     public function text($content, $status_code = null)
     {
         if (is_array($content)) {
+            // TODO: handle array of objects
             $content = implode("\n", $content);
+        } else if (is_object($content)) {
+            // TODO: implement
+            $content = "[Object]";
         }
         return $this->setContent($content, "text/plain", $status_code);
     }
@@ -101,6 +105,29 @@ class Response
         }
 
         return $this->json($content, $status_code);
+    }
+
+    public function serveFile($filename, $content_type = null, $status_code = null)
+    {
+        $project_dir = dirname(__DIR__);
+        $real_path = realpath($project_dir . "/" . $filename);
+
+        if (!str_starts_with($real_path, $project_dir)) {
+            throw new \Exception("Tried to serve file outside project root");
+        }
+
+        if (!$content_type) {
+            $ext = pathinfo($filename, PATHINFO_EXTENSION);
+            if ($ext === "html") {
+                $content_type = "text/html";
+            } else if ($ext === "json") {
+                $content_type = "application/json";
+            } else if ($ext === "csv") {
+                $content_type = "text/csv";
+            }
+        }
+
+        return $this->setContent(file_get_contents($real_path), $content_type, $status_code);
     }
 
     public function send()

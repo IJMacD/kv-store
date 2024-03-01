@@ -16,29 +16,15 @@ class BucketController extends BaseController
         $bucket = Bucket::get($bucket);
 
         $since = $this->request->getQueryParam("since");
+        $limit = $this->request->getQueryParam("limit", 10000);
+        $prefix = $this->request->getQueryParam("prefix");
 
         $this->response->header("Last-Modified", $bucket->getLastModifiedDate()->format("r"));
 
         $field = $this->request->getQueryParam("field");
 
-        if (is_null($field)) {
-            $objects = $bucket->getObjects($since);
-
-            return $this->response->autoContent($objects);
-        }
-
-        if ($field === "value") {
-            $objects = $bucket->getObjects($since);
-
-            $values = array_map(function ($o) {
-                return $o->value;
-            }, $objects);
-
-            return $this->response->autoContent($values);
-        }
-
         if ($field === "key") {
-            $keys = $bucket->getObjectKeys($since);
+            $keys = $bucket->getObjectKeys($since, $limit, $prefix);
 
             // Special for csv so we can set header
             if ($this->request->isAccepted("text/csv", true)) {
@@ -48,10 +34,21 @@ class BucketController extends BaseController
             return $this->response->autoContent($keys);
         }
 
+        $objects = $bucket->getObjects($since, $limit, $prefix);
+
+        if (is_null($field)) {
+            return $this->response->autoContent($objects);
+        }
+
+        if ($field === "value") {
+            $values = array_map(function ($o) {
+                return $o->value;
+            }, $objects);
+
+            return $this->response->autoContent($values);
+        }
+
         if ($field === "created") {
-            $objects = $bucket->getObjects($since);
-
-
             // Special for csv so we can set header
             if ($this->request->isAccepted("text/csv", true)) {
                 // Response::csv() extracts fields from objects itself
@@ -74,15 +71,15 @@ class BucketController extends BaseController
         $name = bin2hex(random_bytes(12));
 
         $email = $this->request->getRequestParam("email");
-        $secret = $this->request->getRequestParam("secret");
+        $admin_key = $this->request->getRequestParam("admin_key");
         $read_key = $this->request->getRequestParam("read_key");
         $write_key = $this->request->getRequestParam("write_key");
 
         if (Bucket::create($name, $email)) {
 
             // If an explicit secret has not been given then auto-generate one
-            if (!$secret) {
-                $secret = bin2hex(random_bytes(18));
+            if (!$admin_key) {
+                $admin_key = bin2hex(random_bytes(18));
             }
 
             $bucket_auth = new BucketAuth();
@@ -92,10 +89,10 @@ class BucketController extends BaseController
             $bucket_auth->edit = true;
             $bucket_auth->delete = true;
             $bucket_auth->admin = true;
-            Auth::addBucketAuth($name, "bearer", $bucket_auth, secret: $secret);
+            Auth::addBucketAuth($name, "bearer", $bucket_auth, secret: $admin_key);
 
             if ($email) {
-                Email::sendBucketCreated($email, $name, $secret);
+                Email::sendBucketCreated($email, $name, $admin_key);
             }
 
             // If a write key has been given, generate auth for writing

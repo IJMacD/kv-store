@@ -58,6 +58,21 @@ class ObjectController extends BaseController
             200 : 500;
     }
 
+    public function createOrUpdate($bucket, $key)
+    {
+        Auth::checkBucketAuth($bucket, "create");
+
+        $bucket = Bucket::get($bucket);
+
+        $object = $bucket->getObject($key);
+
+        if ($object) {
+            return $bucket->editObject($key, $this->request->getBody()) ? 204 : 500;
+        }
+
+        return $bucket->createObject($key, $this->request->getBody()) ?
+            201 : 500;
+    }
 
     public function delete($bucket, $key)
     {

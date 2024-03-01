@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS `objects` (
   `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `numeric_value` int(11) DEFAULT NULL,
   `type` enum('TEXT','NUMBER','JSON') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL DEFAULT 'TEXT',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`key`),
   KEY `object_bucket_id` (`bucket_id`),
   CONSTRAINT `object_bucket_id` FOREIGN KEY (`bucket_id`) REFERENCES `buckets` (`bucket_id`) ON DELETE CASCADE ON UPDATE NO ACTION
