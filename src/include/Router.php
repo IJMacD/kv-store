@@ -1,6 +1,9 @@
 <?php
 
-class Router {
+namespace KVStore;
+
+class Router
+{
     private static $singleton;
     private $routes = [
         "get" => [],
@@ -9,37 +12,42 @@ class Router {
         "delete" => [],
     ];
 
-    public static function get ($route, $handler) {
+    public static function get($route, $handler)
+    {
         $router = self::getSingleton();
 
         $router->routes["get"][$route] = $handler;
     }
 
-    public static function post ($route, $handler) {
+    public static function post($route, $handler)
+    {
         $router = self::getSingleton();
 
         $router->routes["post"][$route] = $handler;
     }
 
-    public static function put ($route, $handler) {
+    public static function put($route, $handler)
+    {
         $router = self::getSingleton();
 
         $router->routes["put"][$route] = $handler;
     }
 
-    public static function delete ($route, $handler) {
+    public static function delete($route, $handler)
+    {
         $router = self::getSingleton();
 
         $router->routes["delete"][$route] = $handler;
     }
 
-    public static function run () {
+    public static function run()
+    {
         $router = self::getSingleton();
         $request_uri = self::getRequestURI();
         $method = self::getRequestMethod();
 
         if (!isset($router->routes[$method])) {
-            throw new Exception("Unsupported method: " . $method);
+            throw new \Exception("Unsupported method: " . $method);
         }
 
         $routes = $router->routes[$method];
@@ -69,22 +77,24 @@ class Router {
             }
         }
 
-        throw new Exception("Not Found");
+        throw new \Exception("Not Found");
     }
 
     /**
      * @return self
      */
-    private static function getSingleton () {
+    private static function getSingleton()
+    {
         if (!self::$singleton) {
             self::$singleton = new self();
         }
         return self::$singleton;
     }
 
-    private static function getRequestURI () {
-        if(!isset($_SERVER['REQUEST_URI'])) {
-            throw new Exception("[Router] REQUEST_URI needs to be set to route");
+    private static function getRequestURI()
+    {
+        if (!isset($_SERVER['REQUEST_URI'])) {
+            throw new \Exception("[Router] REQUEST_URI needs to be set to route");
         }
 
         $uri = $_SERVER['REQUEST_URI'];
@@ -97,9 +107,10 @@ class Router {
         return substr($uri, 0, $qi);
     }
 
-    private static function getSplitRequestURI () {
-        if(!isset($_SERVER['REQUEST_URI'])) {
-            throw new Exception("[Router] REQUEST_URI needs to be set to route");
+    private static function getSplitRequestURI()
+    {
+        if (!isset($_SERVER['REQUEST_URI'])) {
+            throw new \Exception("[Router] REQUEST_URI needs to be set to route");
         }
 
         $uri = substr($_SERVER['REQUEST_URI'], 1);
@@ -107,7 +118,8 @@ class Router {
         return explode("/", $uri);
     }
 
-    private static function getRequestMethod () {
+    private static function getRequestMethod()
+    {
         return strtolower($_SERVER['REQUEST_METHOD']);
     }
 
@@ -115,12 +127,13 @@ class Router {
      * @param string $route
      * @param string $path
      */
-    private static function checkRouteMatch ($route, $path) {
+    private static function checkRouteMatch($route, $path)
+    {
         if ($route[0] !== "/") {
-            throw new Exception("[Router] Route must start with /; got: " . $route);
+            throw new \Exception("[Router] Route must start with /; got: " . $route);
         }
         if ($path[0] !== "/") {
-            throw new Exception("[Router] Path must start with /; got: " . $path);
+            throw new \Exception("[Router] Path must start with /; got: " . $path);
         }
 
         // If the path ends in '/' then it can match even if the route doesn't end in a '/'

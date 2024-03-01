@@ -1,6 +1,9 @@
 <?php
 
-class DateTimeJSON extends DateTime implements JsonSerializable {
+namespace KVStore;
+
+class DateTimeJSON extends \DateTime implements \JsonSerializable
+{
     function jsonSerialize(): mixed
     {
         return $this->format("c");

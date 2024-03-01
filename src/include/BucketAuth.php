@@ -1,5 +1,7 @@
 <?php
 
+namespace KVStore;
+
 class BucketAuth
 {
     public $list = false;

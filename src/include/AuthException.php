@@ -1,3 +1,7 @@
 <?php
 
-class AuthException extends Exception {}
+namespace KVStore;
+
+class AuthException extends \Exception
+{
+}

@@ -1,5 +1,11 @@
 <?php
 
+namespace KVStore\Controllers;
+
+use KVStore\Models\Auth;
+use KVStore\Models\Bucket;
+use KVStore\BucketAuth;
+
 class GodController extends BaseController
 {
     public function handle()

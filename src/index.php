@@ -1,5 +1,11 @@
 <?php
 
+namespace KVStore;
+
+use KVStore\Controllers\BucketController;
+use KVStore\Controllers\ObjectController;
+use KVStore\Controllers\WelcomeController;
+
 include "vendor/autoload.php";
 
 // Router::setController("/{bucket}/{key}", ObjectController::class);
@@ -21,7 +27,7 @@ try {
     Router::run();
 } catch (AuthException $e) {
     echo $e->getMessage();
-} catch (Exception $e) {
+} catch (\Exception $e) {
     header("HTTP/1.1 400 Bad Request");
     echo $e->getMessage();
 }

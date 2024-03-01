@@ -1,5 +1,10 @@
 <?php
 
+namespace KVStore\Controllers;
+
+use KVStore\Models\Auth;
+use KVStore\Models\Bucket;
+
 class WelcomeController extends BaseController
 {
     public function index()

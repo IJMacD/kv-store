@@ -1,6 +1,12 @@
 <?php
 
-class BaseController {
+namespace KVStore\Controllers;
+
+use KVStore\Request;
+use KVStore\Response;
+
+class BaseController
+{
     protected $request;
     protected $response;
 

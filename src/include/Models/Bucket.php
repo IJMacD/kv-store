@@ -1,5 +1,9 @@
 <?php
 
+namespace KVStore\Models;
+
+use KVStore\Database;
+
 class Bucket
 {
     var $name;
@@ -33,7 +37,7 @@ class Bucket
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
 
-        $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $result = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
         if ($result) {
             return $result;
@@ -144,7 +148,7 @@ class Bucket
         $result = $stmt->fetchColumn();
 
         if ($result) {
-            return new DateTime($result);
+            return new \DateTime($result);
         }
 
         $stmt = $db->prepare(
@@ -157,10 +161,10 @@ class Bucket
         $result = $stmt->fetchColumn();
 
         if ($result) {
-            return new DateTime($result);
+            return new \DateTime($result);
         }
 
-        throw new Exception("Bucket not found $this->name");
+        throw new \Exception("Bucket not found $this->name");
     }
 
     /**
@@ -193,7 +197,7 @@ class Bucket
         $stmt->execute(["id" => $bucket_id, "key" => $key]);
 
         if ($stmt->fetchColumn() == 0) {
-            throw new Exception("[Bucket] Cannot edit object which does not exist: " . $this->name . "/" . $key);
+            throw new \Exception("[Bucket] Cannot edit object which does not exist: " . $this->name . "/" . $key);
         }
 
         $stmt = $db->prepare('UPDATE objects SET "value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');

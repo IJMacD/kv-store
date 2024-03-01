@@ -1,5 +1,11 @@
 <?php
 
+namespace KVStore\Models;
+
+use KVStore\AuthException;
+use KVStore\BucketAuth;
+use KVStore\Database;
+
 class Auth
 {
     public static function getBucketAuth($bucket_name)
@@ -90,7 +96,7 @@ class Auth
             return $stmt->fetch();
         }
 
-        throw new Exception("[Database] Unrecognised Auth Type $type");
+        throw new \Exception("[Database] Unrecognised Auth Type $type");
     }
 
     private static function checkBucketAuthByTypeExists($bucket_name, $type)

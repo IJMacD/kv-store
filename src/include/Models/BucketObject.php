@@ -1,5 +1,9 @@
 <?php
 
+namespace KVStore\Models;
+
+use KVStore\DateTimeJSON;
+
 class BucketObject
 {
     var string $key;

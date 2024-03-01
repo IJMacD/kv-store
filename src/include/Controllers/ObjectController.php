@@ -1,8 +1,14 @@
 <?php
 
+namespace KVStore\Controllers;
 
-class ObjectController extends BaseController {
-    public function get ($bucket, $key) {
+use KVStore\Models\Auth;
+use KVStore\Models\Bucket;
+
+class ObjectController extends BaseController
+{
+    public function get($bucket, $key)
+    {
         Auth::checkBucketAuth($bucket, "read");
 
         $bucket = Bucket::get($bucket);
@@ -17,7 +23,8 @@ class ObjectController extends BaseController {
         return $this->response->autoContent($object->value);
     }
 
-    public function getMeta ($bucket, $key) {
+    public function getMeta($bucket, $key)
+    {
         Auth::checkBucketAuth($bucket, "read");
 
         $bucket = Bucket::get($bucket);
@@ -32,7 +39,8 @@ class ObjectController extends BaseController {
         return $this->response->autoContent($object);
     }
 
-    public function create ($bucket, $key) {
+    public function create($bucket, $key)
+    {
         Auth::checkBucketAuth($bucket, "create");
 
         $bucket = Bucket::get($bucket);
@@ -41,7 +49,8 @@ class ObjectController extends BaseController {
     }
 
 
-    public function update ($bucket, $key) {
+    public function update($bucket, $key)
+    {
         Auth::checkBucketAuth($bucket, "edit");
 
         $bucket = Bucket::get($bucket);
@@ -50,7 +59,8 @@ class ObjectController extends BaseController {
     }
 
 
-    public function delete ($bucket, $key) {
+    public function delete($bucket, $key)
+    {
         Auth::checkBucketAuth($bucket, "delete");
 
         $bucket = Bucket::get($bucket);

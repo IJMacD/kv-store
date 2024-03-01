@@ -1,5 +1,7 @@
 <?php
 
+namespace KVStore;
+
 class Response
 {
     private $status_code = 200;

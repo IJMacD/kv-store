@@ -1,5 +1,12 @@
 <?php
 
+namespace KVStore\Controllers;
+
+use KVStore\Models\Auth;
+use KVStore\Models\Bucket;
+use KVStore\BucketAuth;
+use KVStore\Email;
+
 class BucketController extends BaseController
 {
     public function listObjects($bucket)

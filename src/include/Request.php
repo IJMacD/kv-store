@@ -1,5 +1,7 @@
 <?php
 
+namespace KVStore;
+
 class Request
 {
     private $headers;
@@ -87,7 +89,7 @@ class Request
             return $this->rawBody;
         }
 
-        throw new Exception("[Request] Unsupported body");
+        throw new \Exception("[Request] Unsupported body");
     }
 
     public function isAccepted($type, $explicit = false)
