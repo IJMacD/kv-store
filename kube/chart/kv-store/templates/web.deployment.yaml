@@ -49,6 +49,13 @@ spec:
           ports:
             - name: web
               containerPort: 80
+          resources:
+            requests:
+              memory: 20Mi
+              cpu: 20m
+            limits:
+              memory: 50Mi
+              cpu: 50m
       {{ if .Values.web.local.enabled }}
       volumes:
         - name: src

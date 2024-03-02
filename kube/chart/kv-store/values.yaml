@@ -5,6 +5,14 @@ mariadb:
     database: kv
     username: kv_user
   initdbScriptsConfigMap: kv-store-mariadb-init
+  primary:
+    resources:
+      requests:
+        memory: 100Mi
+        cpu: 20m
+      limits:
+        memory: 250Mi
+        cpu: 50m
 web:
   replicaCount: 1
   repository:
