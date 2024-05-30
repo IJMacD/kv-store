@@ -12,6 +12,8 @@ fi
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source ${SCRIPT_DIR}/vars.sh
 
+export KUBECONFIG=$LOCAL_KUBECONFIG
+
 [[ ! -z $(k3d cluster list ${APPNAME} | grep '0/1') ]] && k3d cluster stop --all && k3d cluster start ${APPNAME}
 
 # Delete the images on the node - not the registry!
