@@ -8,11 +8,10 @@ mariadb:
   primary:
     resources:
       requests:
-        memory: 100Mi
-        cpu: 20m
+        memory: 108Mi
+        cpu: 25m
       limits:
-        memory: 250Mi
-        cpu: 50m
+        memory: 108Mi
 web:
   replicaCount: 1
   repository:
@@ -26,3 +25,9 @@ web:
     enabled: false
   local:
     enabled: false
+  resources:
+    requests:
+      memory: 26Mi
+      cpu: 5m
+    limits:
+      memory: 26Mi
