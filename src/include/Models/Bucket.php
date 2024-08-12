@@ -3,6 +3,7 @@
 namespace KVStore\Models;
 
 use KVStore\Database;
+use KVStore\DateTimeJSON;
 use PDO;
 
 class Bucket
@@ -189,7 +190,7 @@ class Bucket
         $result = $stmt->fetchColumn();
 
         if ($result) {
-            return new \DateTime($result);
+            return new DateTimeJSON($result);
         }
 
         $stmt = $db->prepare(
@@ -202,7 +203,7 @@ class Bucket
         $result = $stmt->fetchColumn();
 
         if ($result) {
-            return new \DateTime($result);
+            return new DateTimeJSON($result);
         }
 
         throw new \Exception("Bucket not found $this->name");
@@ -300,6 +301,29 @@ class Bucket
         }
 
         return null;
+    }
+
+    public static function list($email, $label = null)
+    {
+        $db = Database::getSingleton();
+
+        $sql = 'SELECT bucket_name FROM buckets WHERE "email" = :email';
+        $params = ["email" => $email];
+
+        if ($label) {
+            $sql .= 'AND "label" = :label';
+            $params["label"] = $label;
+        }
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($results) {
+            return $results;
+        }
+
+        return [];
     }
 
     public static function create($bucket_name, $email = null)

@@ -4,6 +4,7 @@ namespace KVStore;
 
 use KVStore\Controllers\BucketController;
 use KVStore\Controllers\ObjectController;
+use KVStore\Controllers\RecoverController;
 use KVStore\Controllers\WelcomeController;
 
 include "vendor/autoload.php";
@@ -12,6 +13,8 @@ include "vendor/autoload.php";
 // Router::setController("/{bucket}", BucketController::class);
 
 Router::get("/", [WelcomeController::class, "index"]);
+
+Router::post("/recover", [RecoverController::class, "recover"]);
 
 Router::post("/", [BucketController::class, "createBucket"]);
 Router::get("/{bucket}", [BucketController::class, "listObjects"]);

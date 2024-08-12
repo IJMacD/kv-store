@@ -2,7 +2,9 @@
 
 namespace KVStore;
 
+use KVStore\Emails\BaseEmail;
 use PHPMailer\PHPMailer\PHPMailer;
+use ReflectionException;
 
 class Email
 {
@@ -24,7 +26,7 @@ class Email
         return $mail;
     }
 
-    public static function sendBucketCreated(string $to, string $name, string $secret)
+    public static function send(string $emailClass, string $to, $params)
     {
         $mail = self::getMailer();
 
@@ -33,10 +35,17 @@ class Email
         $mail->setFrom('kv@ijmacd.com', 'kv store');
         $mail->addAddress($to);     //Add a recipient
 
+        if (!is_subclass_of($emailClass, BaseEmail::class)) {
+            throw new ReflectionException($emailClass . " is not a subclass of " . BaseEmail::class);
+        }
+
+        /** @var BaseEmail */
+        $email = new $emailClass();
+
         //Content
         $mail->isHTML(true);                                  //Set email format to HTML
-        $mail->Subject = 'Bucket Created: ' . $name;
-        $mail->Body    = '<p>A new bucket has been created on kv.ijmacd.com.</p><p>The endpoint for this bucket is <a href="https://kv.ijmacd.com/' . $name . '">https://kv.ijmacd.com/' . $name . '</a>.</p><p>The admin secret for this bucket is: <code style="font-family: monospace; color: #666; border: 1px solid #CCC; border-radius: 1px; background: #EEE; padding: 1px">' . $secret . '</code></p>';
+        $mail->Subject = $email->subject($params);
+        $mail->Body    = $email->body($params);
         // $mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
 
         $mail->send();

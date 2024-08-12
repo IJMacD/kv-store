@@ -7,6 +7,7 @@ use KVStore\Models\Auth;
 use KVStore\Models\Bucket;
 use KVStore\BucketAuth;
 use KVStore\Email;
+use KVStore\Emails\BucketCreated;
 
 class BucketController extends BaseController
 {
@@ -94,7 +95,7 @@ class BucketController extends BaseController
 
             if ($email) {
                 try {
-                    Email::sendBucketCreated($email, $name, $admin_key);
+                    Email::send(BucketCreated::class, $email, ["name" => $name, "secret"  => $admin_key]);
                 } catch (Exception $e) {
                     // TODO: handle better
                     // Couldn't send email
