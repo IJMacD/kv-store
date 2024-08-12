@@ -26,8 +26,8 @@ class BucketRecover extends BaseEmail
                 . 'Secret: <code style="font-family: monospace; color: #666; border: 1px solid #CCC; border-radius: 1px; background: #EEE; padding: 1px">' . $bucket['secret'] . '</code><br/>';
 
             if ($callback_domain) {
-                $url = $bucket['callback'] . '#bucket=' . $bucket['name'] . '&secret=' . $bucket['secret'];
-                $html .=  '<a href="' . $url . '">' . $url . '</a>';
+                $url = $params['callback'] . '#bucket=' . $bucket['name'] . '&secret=' . $bucket['secret'];
+                $html .=  '<a href="' . $url . '">' . "Give access to $callback_domain" . '</a>';
             }
 
             $html .= '</li>';
