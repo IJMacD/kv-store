@@ -96,6 +96,10 @@ class Response
 
     public function autoContent($content, $request = new Request(), $status_code = null)
     {
+        if ($request->isAccepted("application/json", true)) {
+            return $this->json($content, numeric_check: true, status_code: $status_code);
+        }
+
         if ($request->isAccepted("text/plain", true)) {
             return $this->text($content, $status_code);
         }
@@ -104,7 +108,11 @@ class Response
             return $this->csv($content, status_code: $status_code);
         }
 
-        return $this->json($content, status_code: $status_code);
+        if (is_object($content)) {
+            return $this->json($content, numeric_check: true, status_code: $status_code);
+        }
+
+        return $this->text($content, status_code: $status_code);
     }
 
     public function serveFile($filename, $content_type = null, $status_code = null)

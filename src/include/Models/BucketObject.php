@@ -21,7 +21,11 @@ class BucketObject
         $object = new self();
 
         $object->key = $array["key"];
-        $object->value = json_decode($array["value"]);
+        if ($array["type"] === "JSON") {
+            $object->value = json_decode($array["value"]);
+        } else {
+            $object->value = $array["value"];
+        }
         $object->created = new DateTimeJSON($array["created_at"]);
 
         return $object;

@@ -2,6 +2,7 @@
 
 namespace KVStore\Controllers;
 
+use Exception;
 use KVStore\Models\Auth;
 use KVStore\Models\Bucket;
 use KVStore\BucketAuth;
@@ -92,7 +93,12 @@ class BucketController extends BaseController
             Auth::addBucketAuth($name, "bearer", $bucket_auth, secret: $admin_key);
 
             if ($email) {
-                Email::sendBucketCreated($email, $name, $admin_key);
+                try {
+                    Email::sendBucketCreated($email, $name, $admin_key);
+                } catch (Exception $e) {
+                    // TODO: handle better
+                    // Couldn't send email
+                }
             }
 
             // If a write key has been given, generate auth for writing

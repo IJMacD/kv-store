@@ -113,7 +113,8 @@ class Bucket
             'SELECT
                 "key",
                 COALESCE("value","numeric_value") AS "value",
-                "objects"."created_at"
+                "objects"."created_at",
+                "type"
             FROM objects
                 JOIN buckets USING (bucket_id)
             WHERE ' . $where . '
@@ -154,7 +155,8 @@ class Bucket
             'SELECT
                 "key",
                 COALESCE("value","numeric_value") AS "value",
-                "objects"."created_at"
+                "objects"."created_at",
+                "type"
             FROM objects
                 JOIN buckets USING (bucket_id)
             WHERE "bucket_name" = :name
@@ -255,17 +257,21 @@ class Bucket
 
         $bucket_id = self::getBucketID($this->name);
 
-        $stmt = $db->prepare('SELECT COUNT(*) FROM objects WHERE "bucket_id" = :id AND "key" = :key');
+        $stmt = $db->prepare('SELECT "type" FROM objects WHERE "bucket_id" = :id AND "key" = :key');
         $stmt->execute(["id" => $bucket_id, "key" => $key]);
 
-        if ($stmt->fetchColumn() == 0) {
+        if ($stmt->rowCount() == 0) {
             throw new \Exception("[Bucket] Cannot edit object which does not exist: " . $this->name . "/" . $key);
         }
 
+        $type = $stmt->fetchColumn();
+
         $stmt = $db->prepare('UPDATE objects SET "value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
 
-        // TODO: validate type against data already in database
-        return $stmt->execute(["id" => $bucket_id, "key" => $key, "value" => json_encode($object)]);
+        // TODO: validate type if numeric
+        // TODO: check if ($type !== "JSON" && !is_string($object))
+
+        return $stmt->execute(["id" => $bucket_id, "key" => $key, "value" => $type === "JSON" ? json_encode($object) : $object]);
     }
 
     /**
