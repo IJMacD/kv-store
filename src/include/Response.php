@@ -104,7 +104,7 @@ class Response
             return $this->csv($content, status_code: $status_code);
         }
 
-        return $this->json($content, $status_code);
+        return $this->json($content, status_code: $status_code);
     }
 
     public function serveFile($filename, $content_type = null, $status_code = null)
