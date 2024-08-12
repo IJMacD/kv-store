@@ -108,7 +108,7 @@ class Response
             return $this->csv($content, status_code: $status_code);
         }
 
-        if (is_object($content)) {
+        if (is_object($content) || is_array($content)) {
             return $this->json($content, numeric_check: true, status_code: $status_code);
         }
 
