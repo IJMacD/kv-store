@@ -9,6 +9,7 @@ class BucketObject
     var string $key;
     var mixed $value;
     var DateTimeJSON $created;
+    var string $mime;
 
     function __toString()
     {
@@ -27,6 +28,7 @@ class BucketObject
             $object->value = $array["value"];
         }
         $object->created = new DateTimeJSON($array["created_at"]);
+        $object->mime = $array["mime"];
 
         return $object;
     }

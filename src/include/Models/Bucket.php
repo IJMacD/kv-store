@@ -76,8 +76,9 @@ class Bucket
                 "objects"."created_at"
             FROM objects
                 JOIN buckets USING (bucket_id)
-            WHERE bucket_name = :name';
-        $params = ["name" => $this->name];
+            WHERE bucket_name = :name
+            LIMIT :limit';
+        $params = ["name" => $this->name, "limit" => $limit];
 
         if ($since) {
             $sql .= ' AND "created_at" > :since';
@@ -115,7 +116,8 @@ class Bucket
                 "key",
                 COALESCE("value","numeric_value") AS "value",
                 "objects"."created_at",
-                "type"
+                "type",
+                "mime"
             FROM objects
                 JOIN buckets USING (bucket_id)
             WHERE ' . $where . '
@@ -157,7 +159,8 @@ class Bucket
                 "key",
                 COALESCE("value","numeric_value") AS "value",
                 "objects"."created_at",
-                "type"
+                "type",
+                "mime"
             FROM objects
                 JOIN buckets USING (bucket_id)
             WHERE "bucket_name" = :name
@@ -212,14 +215,15 @@ class Bucket
     /**
      * @param string $key
      * @param object|string $object
+     * @param string $mime
      */
-    public function createObject($key, $object)
+    public function createObject($key, $object, $mime = "text/plain")
     {
         $db = Database::getSingleton();
 
         $bucket_id = self::getBucketID($this->name);
 
-        $stmt = $db->prepare('INSERT INTO objects ("bucket_id", "key", "value", "numeric_value", "type") VALUES (:bucket_id, :key, :value, :number, :type)');
+        $stmt = $db->prepare('INSERT INTO objects ("bucket_id", "key", "value", "numeric_value", "type", "mime") VALUES (:bucket_id, :key, :value, :number, :type, :mime)');
 
         $value = null;
         $number = null;
@@ -245,14 +249,16 @@ class Bucket
             "value" => $value,
             "number" => $number,
             "type" => $type,
+            "mime" => $mime,
         ]);
     }
 
     /**
      * @param string $key
-     * @param object $object
+     * @param object|string $object
+     * @param string $mime
      */
-    public function editObject($key, $object)
+    public function editObject($key, $object, $mime)
     {
         $db = Database::getSingleton();
 
@@ -271,6 +277,7 @@ class Bucket
 
         // TODO: validate type if numeric
         // TODO: check if ($type !== "JSON" && !is_string($object))
+        // TODO: check if mimes match
 
         return $stmt->execute(["id" => $bucket_id, "key" => $key, "value" => $type === "JSON" ? json_encode($object) : $object]);
     }
