@@ -4,6 +4,11 @@ name: kv-store
 type: application
 version: 2.2.1
 dependencies:
+  - name: postgresql
+    version: ~16.0.1
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
   - name: mariadb
     version: ~14.1.4
     repository: https://charts.bitnami.com/bitnami
+    condition: mariadb.enabled

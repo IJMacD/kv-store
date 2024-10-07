@@ -1,6 +1,15 @@
 appVersion: ""
 hostname: kv.ijmacd.com
+postgresql:
+  enabled: true
+  auth:
+    database: kv
+    username: kv_user
+  primary:
+    initdb:
+      scriptsConfigMap: kv-store-postgresql-init
 mariadb:
+  enabled: false
   auth:
     database: kv
     username: kv_user

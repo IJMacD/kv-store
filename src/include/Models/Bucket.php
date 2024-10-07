@@ -154,18 +154,35 @@ class Bucket
     {
         $db = Database::getSingleton();
 
-        $stmt = $db->prepare(
-            'SELECT
-                "key",
-                COALESCE("value","numeric_value") AS "value",
-                "objects"."created_at",
-                "type",
-                "mime"
-            FROM objects
-                JOIN buckets USING (bucket_id)
-            WHERE "bucket_name" = :name
-                AND "key" = :key'
-        );
+        if ($db->getDriver() === "pgsql") {
+            $stmt = $db->prepare(
+                'SELECT
+                    "key",
+                    COALESCE("value","numeric_value"::varchar) AS "value",
+                    "objects"."created_at",
+                    "type",
+                    "mime"
+                FROM objects
+                    JOIN buckets USING (bucket_id)
+                WHERE "bucket_name" = :name
+                    AND "key" = :key'
+            );
+        }
+        else {
+            $stmt = $db->prepare(
+                'SELECT
+                    "key",
+                    COALESCE("value","numeric_value") AS "value",
+                    "objects"."created_at",
+                    "type",
+                    "mime"
+                FROM objects
+                    JOIN buckets USING (bucket_id)
+                WHERE "bucket_name" = :name
+                    AND "key" = :key'
+            );
+        }
+
         $stmt->execute(["name" => $this->name, "key" => $key]);
 
         $result = $stmt->fetch();
@@ -217,7 +234,7 @@ class Bucket
      * @param object|string $object
      * @param string $mime
      */
-    public function createObject($key, $object, $mime = "text/plain")
+    public function createObject($key, $object, $mime = null)
     {
         $db = Database::getSingleton();
 
@@ -232,6 +249,9 @@ class Bucket
         if (is_array($object) || is_object($object)) {
             $value = json_encode($object);
             $type = "JSON";
+            if ($mime == null) {
+                $mime = "application/json";
+            }
         } else if (is_numeric($object)) {
             $number = $object;
             $type = "NUMBER";
@@ -241,6 +261,10 @@ class Bucket
         } else {
             $value = $object;
             $type = "TEXT";
+        }
+
+        if ($mime == null) {
+            $mime = "text/plain";
         }
 
         return $stmt->execute([

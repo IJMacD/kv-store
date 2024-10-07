@@ -1,10 +1,12 @@
+{{ if .Values.mariadb.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-mariadb-init
 data:
   {{- $files := .Files }}
-  {{- range tuple "data/create.sql" }}
+  {{- range tuple "data/create.mysql.sql" }}
   {{ base . }}: |
 {{ $files.Get . | indent 4 }}
   {{- end }}
+{{ end }}

@@ -1,0 +1,12 @@
+{{ if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-postgresql-init
+data:
+  {{- $files := .Files }}
+  {{- range tuple "data/create.pgsql.sql" }}
+  {{ base . }}: |
+{{ $files.Get . | indent 4 }}
+  {{- end }}
+{{ end }}

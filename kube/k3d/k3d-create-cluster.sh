@@ -32,7 +32,7 @@ helm dependency build --skip-refresh $SCRIPT_DIR/../chart/${APPNAME}/
 
 # Preload library images into local registry
 library_images=(
-  "bitnami/mariadb:11.1.3-debian-11-r0"
+  # "bitnami/mariadb:11.1.3-debian-11-r0"
 )
 
 for i in "${library_images[@]}"; do

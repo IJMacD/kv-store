@@ -20,7 +20,7 @@ class ObjectController extends BaseController
 
         $this->response->header("Last-Modified", $object->created->format("r"));
 
-        return $this->response->setContent($object->value, $object->mime);
+        return $this->response->autoContent($object->value, mime_hint: $object->mime);
     }
 
     public function getMeta($bucket, $key)

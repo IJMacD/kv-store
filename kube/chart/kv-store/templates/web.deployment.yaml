@@ -23,6 +23,17 @@ spec:
         - name: web
           image: '{{ .Values.web.repository.image }}{{ if ne .Values.appVersion "" }}:{{ .Values.appVersion }}{{ end }}'
           env:
+            {{ if .Values.postgresql.enabled }}
+            - name: DATABASE_DSN
+              value: pgsql:host={{ .Release.Name }}-postgresql;dbname={{ .Values.postgresql.auth.database }}
+            - name: DATABASE_USER
+              value: {{ .Values.postgresql.auth.username }}
+            - name: DATABASE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Release.Name }}-postgresql"
+                  key: password
+            {{ else if .Values.mariadb.enabled }}
             - name: DATABASE_DSN
               value: mysql:host={{ .Release.Name }}-mariadb;dbname={{ .Values.mariadb.auth.database }};charset=utf8mb4
             - name: DATABASE_USER
@@ -30,8 +41,9 @@ spec:
             - name: DATABASE_PASS
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-mariadb
+                  name: "{{ .Release.Name }}-mariadb"
                   key: mariadb-password
+            {{ end }}
             - name: SMTP_SERVER
               value: {{ .Values.web.smtp.server }}
             - name: SMTP_USER

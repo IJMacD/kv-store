@@ -4,34 +4,34 @@ namespace KVStore;
 
 class Response
 {
-    private $status_code = 200;
-    private $content = null;
+    private int $status_code = 200;
+    private ?string $content = null;
     private $headers = [
         "Access-Control-Allow-Origin" => "*",
     ];
 
-    public function __construct($status_code = null)
+    public function __construct(int $status_code = null)
     {
         if ($status_code) {
             $this->status_code = $status_code;
         }
     }
 
-    public function statusCode($status_code)
+    public function statusCode(int $status_code)
     {
         $this->status_code = $status_code;
 
         return $this;
     }
 
-    public function header($name, $value)
+    public function header(string $name, string $value)
     {
         $this->headers[$name] = $value;
 
         return $this;
     }
 
-    public function setContent($content, $content_type, $status_code = null)
+    public function setContent(string $content, string $content_type, int $status_code = null)
     {
         if ($status_code) {
             $this->status_code = $status_code;
@@ -44,27 +44,57 @@ class Response
         return $this;
     }
 
-    public function text($content, $status_code = null)
+    public function text(mixed $content, int $status_code = null)
     {
         if (is_array($content)) {
             // TODO: handle array of objects
             $content = implode("\n", $content);
         } else if (is_object($content)) {
-            // TODO: implement
-            $content = "[Object]";
+            $lines = [];
+            foreach ($content as $key => $value) {
+                if (is_object($value)) {
+                    $lines[] = '[' . $key . ']';
+                }
+                else {
+                    $lines[] = $key . "=" . $value;
+                }
+            }
+            $content = implode("\n", $lines);
         }
+
         return $this->setContent($content, "text/plain", $status_code);
     }
 
-    public function html($content, $status_code = null)
+    public function html(mixed $content, int $status_code = null)
     {
         if (is_array($content)) {
             $content = implode("", $content);
+        } else if (is_object($content)) {
+            $lines = ['<dl>'];
+            foreach ($content as $key => $value) {
+                if (is_object($value)) {
+                    // TODO: Implement
+                }
+                else {
+                    $lines[] = '<dt>' . $key . "</dt><dd>" . $value . '</dd>';
+                }
+            }
+            $lines[] = '</dl>';
+            $content = implode("\n", $lines);
         }
+
         return $this->setContent($content, "text/html", $status_code);
     }
 
-    public function json($content, $numeric_check = false, $status_code = null)
+    public function xml(mixed $content, int $status_code = null)
+    {
+        $element = xml_encode($content, "object");
+        $content = $element->asXML();
+
+        return $this->setContent($content, "text/xml", $status_code);
+    }
+
+    public function json(mixed $content, $numeric_check = false, int $status_code = null)
     {
         return $this->setContent(
             json_encode($content, $numeric_check ? JSON_NUMERIC_CHECK : 0),
@@ -73,7 +103,7 @@ class Response
         );
     }
 
-    public function csv($content, $headers = null, $status_code = null)
+    public function csv(mixed $content, array $headers = null, int $status_code = null)
     {
         $lines = [];
 
@@ -94,7 +124,7 @@ class Response
         return $this->setContent(implode("\n", $lines), "text/csv", $status_code);
     }
 
-    public function autoContent($content, $request = new Request(), $status_code = null)
+    public function autoContent(mixed $content, $request = new Request(), int $status_code = null, string $mime_hint = null)
     {
         if ($request->isAccepted("application/json", true)) {
             return $this->json($content, numeric_check: true, status_code: $status_code);
@@ -108,14 +138,42 @@ class Response
             return $this->csv($content, status_code: $status_code);
         }
 
-        if (is_object($content) || is_array($content)) {
+        if ($request->isAccepted("text/html", true)) {
+            return $this->html($content, status_code: $status_code);
+        }
+
+        if ($request->isAccepted("text/xml", true)) {
+            return $this->xml($content, status_code: $status_code);
+        }
+
+        if ($mime_hint === "application/json") {
             return $this->json($content, numeric_check: true, status_code: $status_code);
+        }
+
+        if ($mime_hint === "text/plain") {
+            return $this->text($content, $status_code);
+        }
+
+        if ($mime_hint === "text/csv") {
+            return $this->csv($content, status_code: $status_code);
+        }
+
+        if ($mime_hint === "text/html") {
+            return $this->html($content, status_code: $status_code);
+        }
+
+        if (!is_string($content)) {
+            throw new Exception("Error Processing Request");
+        }
+
+        if ($mime_hint) {
+            return $this->setContent($content, $mime_hint, $status_code);
         }
 
         return $this->text($content, status_code: $status_code);
     }
 
-    public function serveFile($filename, $content_type = null, $status_code = null)
+    public function serveFile(string $filename, string $content_type = null, int $status_code = null)
     {
         $project_dir = dirname(__DIR__);
         $real_path = realpath($project_dir . "/" . $filename);
@@ -175,14 +233,14 @@ class Response
     }
 }
 
-function get_csv_headers($object)
+function get_csv_headers(mixed $object)
 {
     return is_array($object) ? array_keys($object) : (
         is_object($object) ? array_keys((array)$object) : ["value"]
     );
 }
 
-function get_csv_values($object, $headers)
+function get_csv_values(mixed $object, array $headers)
 {
     return array_map(function ($key) use ($object) {
         if (is_array($object)) {
@@ -203,4 +261,38 @@ function get_csv_values($object, $headers)
 
         return $val;
     }, $headers);
+}
+
+function xml_encode(mixed $value=null, string $key="root", \SimpleXMLElement $parent=null){
+    if(is_object($value)) $value = (array) $value;
+    if(!is_array($value)){
+        if($parent === null){
+            if(is_numeric($key)) $key = 'item';
+            if($value===null) $node = new \SimpleXMLElement("<$key />");
+            else              $node = new \SimpleXMLElement("<$key>$value</$key>");
+        }
+        else{
+            $parent->addChild($key, $value);
+            $node = $parent;
+        }
+    }
+    else{
+        $array_numeric = false;
+        if($parent === null){
+            if(empty($value)) $node = new \SimpleXMLElement("<$key />");
+            else              $node = new \SimpleXMLElement("<$key></$key>");
+        }
+        else{
+            if(!isset($value[0])) $node = $parent->addChild($key);
+            else{
+                $array_numeric = true;
+                $node = $parent;
+            }
+        }
+        foreach( $value as $k => $v ) {
+            if($array_numeric) xml_encode($v, $key, $node);
+            else xml_encode($v, $k, $node);
+        }
+    }
+    return $node;
 }
