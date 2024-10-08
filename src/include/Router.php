@@ -10,6 +10,7 @@ class Router
         "post" => [],
         "put" => [],
         "delete" => [],
+        "head" => [],
     ];
 
     public static function get($route, $handler)
@@ -40,11 +41,23 @@ class Router
         $router->routes["delete"][$route] = $handler;
     }
 
+    public static function head($route, $handler)
+    {
+        $router = self::getSingleton();
+
+        $router->routes["head"][$route] = $handler;
+    }
+
     public static function run()
     {
         $router = self::getSingleton();
         $request_uri = self::getRequestURI();
         $method = self::getRequestMethod();
+
+        if (defined("DEBUG")) {
+            header("X-Request-URI: " . $request_uri);
+            header("X-Method: " . $method);
+        }
 
         if (!isset($router->routes[$method])) {
             throw new \Exception("Unsupported method: " . $method);
@@ -52,10 +65,16 @@ class Router
 
         $routes = $router->routes[$method];
 
+        $i = 0;
+
         foreach ($routes as $route => $handler) {
             $match = self::checkRouteMatch($route, $request_uri);
 
             if ($match !== false) {
+                if (defined("DEBUG")) {
+                    header("X-Route-Match: " . ($i + 1) . '/' . count($routes));
+                }
+
                 if (is_array($handler)) {
                     $obj = new $handler[0];
                     $response = call_user_func_array([$obj, $handler[1]], $match);
@@ -75,6 +94,8 @@ class Router
 
                 return;
             }
+
+            $i++;
         }
 
         throw new \Exception("Not Found");

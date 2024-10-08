@@ -97,60 +97,7 @@ class Bucket
         return [];
     }
 
-    public function getObjects($since = null, $limit = 10000, $prefix = null)
-    {
-        $db = Database::getSingleton();
-
-        $where = '"bucket_name" = :name';
-
-        if ($since) {
-            $where .= ' AND "created_at" > :since';
-        }
-
-        if ($prefix) {
-            $where .= ' AND "key" LIKE :prefix';
-        }
-
-        $sql =
-            'SELECT
-                "key",
-                COALESCE("value","numeric_value") AS "value",
-                "objects"."created_at",
-                "type",
-                "mime"
-            FROM objects
-                JOIN buckets USING (bucket_id)
-            WHERE ' . $where . '
-            ORDER BY "created_at"
-            LIMIT :limit
-            ';
-
-
-        $stmt = $db->prepare($sql);
-
-        $stmt->bindValue("name", $this->name);
-        $stmt->bindValue("limit", $limit, PDO::PARAM_INT);
-
-        if ($since) {
-            $stmt->bindValue("since", $since);
-        }
-
-        if ($prefix) {
-            $stmt->bindValue("prefix", $prefix . "%");
-        }
-
-        $stmt->execute();
-
-        $result = $stmt->fetchAll();
-
-        if ($result) {
-            return array_map([BucketObject::class, "fromArray"], $result);
-        }
-
-        return [];
-    }
-
-    public function getObject($key)
+    public function getObject(string $key)
     {
         $db = Database::getSingleton();
 
@@ -158,23 +105,24 @@ class Bucket
             $stmt = $db->prepare(
                 'SELECT
                     "key",
-                    COALESCE("value","numeric_value"::varchar) AS "value",
+                    COALESCE(
+                        "numeric_value"::varchar,
+                        "binary_value"::varchar,
+                        "text_value"
+                    ) AS "value",
                     "objects"."created_at",
-                    "type",
                     "mime"
                 FROM objects
                     JOIN buckets USING (bucket_id)
                 WHERE "bucket_name" = :name
                     AND "key" = :key'
             );
-        }
-        else {
+        } else {
             $stmt = $db->prepare(
                 'SELECT
                     "key",
-                    COALESCE("value","numeric_value") AS "value",
+                    COALESCE("numeric_value","value") AS "value",
                     "objects"."created_at",
-                    "type",
                     "mime"
                 FROM objects
                     JOIN buckets USING (bucket_id)
@@ -229,38 +177,26 @@ class Bucket
         throw new \Exception("Bucket not found $this->name");
     }
 
-    /**
-     * @param string $key
-     * @param object|string $object
-     * @param string $mime
-     */
-    public function createObject($key, $object, $mime = null)
+    public function createObject(string $key, mixed $object, string $mime = null)
     {
         $db = Database::getSingleton();
 
         $bucket_id = self::getBucketID($this->name);
 
-        $stmt = $db->prepare('INSERT INTO objects ("bucket_id", "key", "value", "numeric_value", "type", "mime") VALUES (:bucket_id, :key, :value, :number, :type, :mime)');
+        $stmt = $db->prepare('INSERT INTO objects ("bucket_id", "key", "text_value", "numeric_value", "mime") VALUES (:bucket_id, :key, :value, :number, :mime)');
 
         $value = null;
         $number = null;
-        $type = "TEXT";
 
         if (is_array($object) || is_object($object)) {
             $value = json_encode($object);
-            $type = "JSON";
             if ($mime == null) {
                 $mime = "application/json";
             }
         } else if (is_numeric($object)) {
             $number = $object;
-            $type = "NUMBER";
-        } elseif (json_decode($object)) {
-            $value = $object;
-            $type = "JSON";
         } else {
             $value = $object;
-            $type = "TEXT";
         }
 
         if ($mime == null) {
@@ -272,44 +208,37 @@ class Bucket
             "key" => $key,
             "value" => $value,
             "number" => $number,
-            "type" => $type,
             "mime" => $mime,
         ]);
     }
 
-    /**
-     * @param string $key
-     * @param object|string $object
-     * @param string $mime
-     */
-    public function editObject($key, $object, $mime)
+    public function editObject(string $key, mixed $object, string $mime)
     {
         $db = Database::getSingleton();
 
         $bucket_id = self::getBucketID($this->name);
 
-        $stmt = $db->prepare('SELECT "type" FROM objects WHERE "bucket_id" = :id AND "key" = :key');
+        $stmt = $db->prepare('SELECT "mime" FROM objects WHERE "bucket_id" = :id AND "key" = :key');
         $stmt->execute(["id" => $bucket_id, "key" => $key]);
 
         if ($stmt->rowCount() == 0) {
-            throw new \Exception("[Bucket] Cannot edit object which does not exist: " . $this->name . "/" . $key);
+            throw new \Exception("[Bucket] Cannot edit object which does not exist: {$this->name}/{$key}");
         }
 
-        $type = $stmt->fetchColumn();
+        $db_mime = $stmt->fetchColumn();
 
-        $stmt = $db->prepare('UPDATE objects SET "value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
+        if ($db_mime !== $mime) {
+            throw new \Exception("[Bucket] Cannot change the mime type of an object.");
+
+        }
 
         // TODO: validate type if numeric
-        // TODO: check if ($type !== "JSON" && !is_string($object))
-        // TODO: check if mimes match
+        $stmt = $db->prepare('UPDATE objects SET "value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
 
-        return $stmt->execute(["id" => $bucket_id, "key" => $key, "value" => $type === "JSON" ? json_encode($object) : $object]);
+        return $stmt->execute(["id" => $bucket_id, "key" => $key, "value" => is_object($object) ? json_encode($object) : $object]);
     }
 
-    /**
-     * @param string $key
-     */
-    public function deleteObject($key)
+    public function deleteObject(string $key)
     {
         $db = Database::getSingleton();
 
@@ -317,6 +246,25 @@ class Bucket
 
         $stmt = $db->prepare('DELETE FROM objects WHERE "bucket_id" = :id AND "key" = :key');
         return $stmt->execute(["id" => $bucket_id, "key" => $key]);
+    }
+
+    /**
+     * @return int -1 if object does not exist
+     */
+    public function getObjectLength(string $key): int
+    {
+        $db = Database::getSingleton();
+
+        $bucket_id = self::getBucketID($this->name);
+
+        $stmt = $db->prepare('SELECT LENGTH("text_value") FROM objects WHERE "bucket_id" = :id AND "key" = :key');
+        $stmt->execute(["id" => $bucket_id, "key" => $key]);
+
+        if ($stmt->rowCount() < 1) {
+            return -1;
+        }
+
+        return $stmt->fetchColumn();
     }
 
     public static function get($bucket_name)

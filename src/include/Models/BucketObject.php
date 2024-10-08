@@ -14,7 +14,7 @@ class BucketObject
     function __toString()
     {
         $v = is_string($this->value) ? $this->value : json_encode($this->value);
-        return "key: " . $this->key . "\nvalue: " . $v . "\ncreated: " . $this->created . "\n";
+        return "key: {$this->key}\nvalue: {$v}\ncreated: {$this->created}\n";
     }
 
     static function fromArray($array)
@@ -22,7 +22,7 @@ class BucketObject
         $object = new self();
 
         $object->key = $array["key"];
-        if ($array["type"] === "JSON") {
+        if ($array["mime"] === "application/json") {
             $object->value = json_decode($array["value"]);
         } else {
             $object->value = $array["value"];

@@ -44,6 +44,16 @@ class Response
         return $this;
     }
 
+    public function getContent()
+    {
+        return $this->content;
+    }
+
+    public function getContentType()
+    {
+        return $this->headers["Content-Type"];
+    }
+
     public function text(mixed $content, int $status_code = null)
     {
         if (is_array($content)) {
@@ -54,8 +64,7 @@ class Response
             foreach ($content as $key => $value) {
                 if (is_object($value)) {
                     $lines[] = '[' . $key . ']';
-                }
-                else {
+                } else {
                     $lines[] = $key . "=" . $value;
                 }
             }
@@ -74,8 +83,7 @@ class Response
             foreach ($content as $key => $value) {
                 if (is_object($value)) {
                     // TODO: Implement
-                }
-                else {
+                } else {
                     $lines[] = '<dt>' . $key . "</dt><dd>" . $value . '</dd>';
                 }
             }
@@ -162,8 +170,12 @@ class Response
             return $this->html($content, status_code: $status_code);
         }
 
+        if ((is_object($content) || is_array($content)) && $request->isAccepted("application/json")) {
+            return $this->json($content, numeric_check: true, status_code: $status_code);
+        }
+
         if (!is_string($content)) {
-            throw new Exception("Error Processing Request");
+            throw new \Exception("Error Processing Request");
         }
 
         if ($mime_hint) {
@@ -236,7 +248,7 @@ class Response
 function get_csv_headers(mixed $object)
 {
     return is_array($object) ? array_keys($object) : (
-        is_object($object) ? array_keys((array)$object) : ["value"]
+        is_object($object) ? array_keys((array) $object) : ["value"]
     );
 }
 
@@ -252,7 +264,7 @@ function get_csv_values(mixed $object, array $headers)
         }
 
         if (!is_string($val)) {
-            $val = (string)$val;
+            $val = (string) $val;
         }
 
         if (str_contains($val, ",")) {
@@ -263,35 +275,42 @@ function get_csv_values(mixed $object, array $headers)
     }, $headers);
 }
 
-function xml_encode(mixed $value=null, string $key="root", \SimpleXMLElement $parent=null){
-    if(is_object($value)) $value = (array) $value;
-    if(!is_array($value)){
-        if($parent === null){
-            if(is_numeric($key)) $key = 'item';
-            if($value===null) $node = new \SimpleXMLElement("<$key />");
-            else              $node = new \SimpleXMLElement("<$key>$value</$key>");
-        }
-        else{
+function xml_encode(mixed $value = null, string $key = "root", \SimpleXMLElement $parent = null)
+{
+    if (is_object($value))
+        $value = (array) $value;
+    if (!is_array($value)) {
+        if ($parent === null) {
+            if (is_numeric($key))
+                $key = 'item';
+            if ($value === null)
+                $node = new \SimpleXMLElement("<$key />");
+            else
+                $node = new \SimpleXMLElement("<$key>$value</$key>");
+        } else {
             $parent->addChild($key, $value);
             $node = $parent;
         }
-    }
-    else{
+    } else {
         $array_numeric = false;
-        if($parent === null){
-            if(empty($value)) $node = new \SimpleXMLElement("<$key />");
-            else              $node = new \SimpleXMLElement("<$key></$key>");
-        }
-        else{
-            if(!isset($value[0])) $node = $parent->addChild($key);
-            else{
+        if ($parent === null) {
+            if (empty($value))
+                $node = new \SimpleXMLElement("<$key />");
+            else
+                $node = new \SimpleXMLElement("<$key></$key>");
+        } else {
+            if (!isset($value[0]))
+                $node = $parent->addChild($key);
+            else {
                 $array_numeric = true;
                 $node = $parent;
             }
         }
-        foreach( $value as $k => $v ) {
-            if($array_numeric) xml_encode($v, $key, $node);
-            else xml_encode($v, $k, $node);
+        foreach ($value as $k => $v) {
+            if ($array_numeric)
+                xml_encode($v, $key, $node);
+            else
+                xml_encode($v, $k, $node);
         }
     }
     return $node;

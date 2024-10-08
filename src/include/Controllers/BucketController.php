@@ -23,48 +23,14 @@ class BucketController extends BaseController
 
         $this->response->header("Last-Modified", $bucket->getLastModifiedDate()->format("r"));
 
-        $field = $this->request->getQueryParam("field");
+        $keys = $bucket->getObjectKeys($since, $limit, $prefix);
 
-        if ($field === "key") {
-            $keys = $bucket->getObjectKeys($since, $limit, $prefix);
-
-            // Special for csv so we can set header
-            if ($this->request->isAccepted("text/csv", true)) {
-                return $this->response->csv($keys, ["key"]);
-            }
-
-            return $this->response->autoContent($keys);
+        // Special for csv so we can set header
+        if ($this->request->isAccepted("text/csv", true)) {
+            return $this->response->csv($keys, ["key"]);
         }
 
-        $objects = $bucket->getObjects($since, $limit, $prefix);
-
-        if (is_null($field)) {
-            return $this->response->autoContent($objects);
-        }
-
-        if ($field === "value") {
-            $values = array_map(function ($o) {
-                return $o->value;
-            }, $objects);
-
-            return $this->response->autoContent($values);
-        }
-
-        if ($field === "created") {
-            // Special for csv so we can set header
-            if ($this->request->isAccepted("text/csv", true)) {
-                // Response::csv() extracts fields from objects itself
-                return $this->response->csv($objects, ["created"]);
-            }
-
-            $values = array_map(function ($o) {
-                return (string)$o->created;
-            }, $objects);
-
-            return $this->response->autoContent($values);
-        }
-
-        return 400;
+        return $this->response->autoContent($keys);
     }
 
     public function createBucket()

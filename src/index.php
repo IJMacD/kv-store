@@ -25,12 +25,18 @@ Router::get("/{bucket}/{key}", [ObjectController::class, "get"]);
 Router::put("/{bucket}/{key}", [ObjectController::class, "createOrUpdate"]);
 Router::post("/{bucket}/{key}", [ObjectController::class, "createOrUpdate"]);
 Router::delete("/{bucket}/{key}", [ObjectController::class, "delete"]);
+Router::head("/{bucket}/{key}", [ObjectController::class, "head"]);
 
 try {
     Router::run();
 } catch (AuthException $e) {
     echo $e->getMessage();
 } catch (\Exception $e) {
-    header("HTTP/1.1 400 Bad Request");
-    echo $e->getMessage();
+    header("HTTP/1.1 500 Bad Request");
+    if ($_SERVER['REQUEST_METHOD'] === "HEAD") {
+        // header("X-Exception: " . str_replace("\n", "; ", $e->getMessage()));
+    }
+    else {
+        echo $e->getMessage();
+    }
 }

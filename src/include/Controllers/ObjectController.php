@@ -82,4 +82,26 @@ class ObjectController extends BaseController
 
         return $bucket->deleteObject($key) ? 200 : 500;
     }
+
+    public function head($bucket, $key)
+    {
+        Auth::checkBucketAuth($bucket, "read");
+
+        $bucket = Bucket::get($bucket);
+        $object = $bucket->getObject($key);
+
+        if (is_null($object)) {
+            return 404;
+        }
+
+        $this->response->header("Last-Modified", $object->created->format("r"));
+
+        $this->response->autoContent($object->value, mime_hint: $object->mime);
+
+        header("Content-Type: " . $this->response->getContentType());
+
+        header("Content-Length: " . strlen($this->response->getContent()));
+
+        return 200;
+    }
 }
