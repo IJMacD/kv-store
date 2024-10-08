@@ -53,6 +53,9 @@ spec:
                 secretKeyRef:
                   name: {{ .Release.Name }}-web
                   key: smtp-password
+            {{- if gt (len .Values.web.extraEnv) 0 -}}
+            {{- toYaml .Values.web.extraEnv | nindent 12 }}
+            {{- end -}}
           {{ if .Values.web.local.enabled }}
           volumeMounts:
             - name: src

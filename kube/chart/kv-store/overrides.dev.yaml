@@ -12,3 +12,6 @@ web:
     enabled: true
   local:
     enabled: true
+  extraEnv:
+    - name: DEBUG
+      value: "1"
