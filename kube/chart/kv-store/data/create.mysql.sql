@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS `buckets` (
 CREATE TABLE IF NOT EXISTS `objects` (
   `key` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,
   `bucket_id` int(11) NOT NULL,
-  `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `text_value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `numeric_value` int(11) DEFAULT NULL,
   `type` enum('TEXT','NUMBER','JSON', 'BLOB') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL DEFAULT 'TEXT',
   `mime` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_520_ci NOT NULL,

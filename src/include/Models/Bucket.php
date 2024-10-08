@@ -121,7 +121,7 @@ class Bucket
             $stmt = $db->prepare(
                 'SELECT
                     "key",
-                    COALESCE("numeric_value","value") AS "value",
+                    COALESCE("numeric_value","text_value") AS "value",
                     "objects"."created_at",
                     "mime"
                 FROM objects
@@ -233,7 +233,7 @@ class Bucket
         if (is_numeric($object)) {
             $stmt = $db->prepare('UPDATE objects SET "numeric_value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
         } else {
-            $stmt = $db->prepare('UPDATE objects SET "value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
+            $stmt = $db->prepare('UPDATE objects SET "text_value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
         }
 
         return $stmt->execute(["id" => $bucket_id, "key" => $key, "value" => is_object($object) ? json_encode($object) : $object]);
