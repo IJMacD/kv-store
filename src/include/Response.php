@@ -31,7 +31,7 @@ class Response
         return $this;
     }
 
-    public function setContent(string $content, string $content_type, int $status_code = null)
+    public function setContent(string $content, string $content_type = "text/plain", int $status_code = null)
     {
         if ($status_code) {
             $this->status_code = $status_code;

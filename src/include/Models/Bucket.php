@@ -229,11 +229,12 @@ class Bucket
 
         if ($db_mime !== $mime) {
             throw new \Exception("[Bucket] Cannot change the mime type of an object.");
-
         }
-
-        // TODO: validate type if numeric
-        $stmt = $db->prepare('UPDATE objects SET "value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
+        if (is_numeric($object)) {
+            $stmt = $db->prepare('UPDATE objects SET "numeric_value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
+        } else {
+            $stmt = $db->prepare('UPDATE objects SET "value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
+        }
 
         return $stmt->execute(["id" => $bucket_id, "key" => $key, "value" => is_object($object) ? json_encode($object) : $object]);
     }
@@ -265,6 +266,17 @@ class Bucket
         }
 
         return $stmt->fetchColumn();
+    }
+
+    public function patchNumericObject(string $key, float $delta): bool
+    {
+        $db = Database::getSingleton();
+
+        $bucket_id = self::getBucketID($this->name);
+
+        $stmt = $db->prepare('UPDATE objects SET numeric_value = numeric_value + :delta WHERE "bucket_id" = :id AND "key" = :key AND numeric_value IS NOT NULL');
+
+        return $stmt->execute(["id" => $bucket_id, "key" => $key, "delta" => $delta]);
     }
 
     public static function get($bucket_name)

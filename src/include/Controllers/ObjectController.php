@@ -54,7 +54,7 @@ class ObjectController extends BaseController
         Auth::checkBucketAuth($bucket, "edit");
 
         $bucket = Bucket::get($bucket);
-        return $bucket->editObject($key, $this->request->getBody()) ?
+        return $bucket->editObject($key, $this->request->getBody(), $this->request->getHeader("Content-Type")) ?
             200 : 500;
     }
 
@@ -67,7 +67,7 @@ class ObjectController extends BaseController
         $object = $bucket->getObject($key);
 
         if ($object) {
-            return $bucket->editObject($key, $this->request->getBody()) ? 204 : 500;
+            return $bucket->editObject($key, $this->request->getBody(), $this->request->getHeader("Content-Type")) ? 204 : 500;
         }
 
         return $bucket->createObject($key, $this->request->getBody()) ?
@@ -103,5 +103,16 @@ class ObjectController extends BaseController
         header("Content-Length: " . strlen($this->response->getContent()));
 
         return 200;
+    }
+
+    public function patch($bucket, $key)
+    {
+        Auth::checkBucketAuth($bucket, "edit");
+
+        $bucket = Bucket::get($bucket);
+
+        $delta = (float) $this->request->getBody();
+
+        return $bucket->patchNumericObject($key, $delta) ? 200 : 400;
     }
 }

@@ -10,42 +10,45 @@ class Router
         "post" => [],
         "put" => [],
         "delete" => [],
-        "head" => [],
     ];
 
-    public static function get($route, $handler)
+    public static function get(string $route, callable|array|int $handler)
     {
         $router = self::getSingleton();
 
         $router->routes["get"][$route] = $handler;
     }
 
-    public static function post($route, $handler)
+    public static function post(string $route, callable|array|int $handler)
     {
         $router = self::getSingleton();
 
         $router->routes["post"][$route] = $handler;
     }
 
-    public static function put($route, $handler)
+    public static function put(string $route, callable|array|int $handler)
     {
         $router = self::getSingleton();
 
         $router->routes["put"][$route] = $handler;
     }
 
-    public static function delete($route, $handler)
+    public static function delete(string $route, callable|array|int $handler)
     {
         $router = self::getSingleton();
 
         $router->routes["delete"][$route] = $handler;
     }
 
-    public static function head($route, $handler)
+    public static function method(string $method, string $route, callable|array|int $handler)
     {
         $router = self::getSingleton();
 
-        $router->routes["head"][$route] = $handler;
+        if (!isset($router->routes[$method])) {
+            $router->routes[$method] = [];
+        }
+
+        $router->routes[$method][$route] = $handler;
     }
 
     public static function run()

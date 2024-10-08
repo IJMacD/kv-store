@@ -76,9 +76,15 @@ class Request
             $this->rawBody = file_get_contents("php://input");
         }
 
-        if ($method === "put" && $contentType === "application/x-www-form-urlencoded") {
-            parse_str($this->rawBody, $result);
-            return $result;
+        if ($contentType === "application/x-www-form-urlencoded") {
+            // cURL likes to send this content type by default
+            // First check to see if it actually looks like form data
+            if (str_contains($this->rawBody, "=")) {
+                parse_str($this->rawBody, $result);
+                return $result;
+            }
+
+            return $this->rawBody;
         }
 
         if ($contentType === "application/json") {

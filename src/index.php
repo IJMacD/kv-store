@@ -25,7 +25,8 @@ Router::get("/{bucket}/{key}", [ObjectController::class, "get"]);
 Router::put("/{bucket}/{key}", [ObjectController::class, "createOrUpdate"]);
 Router::post("/{bucket}/{key}", [ObjectController::class, "createOrUpdate"]);
 Router::delete("/{bucket}/{key}", [ObjectController::class, "delete"]);
-Router::head("/{bucket}/{key}", [ObjectController::class, "head"]);
+Router::method("head", "/{bucket}/{key}", [ObjectController::class, "head"]);
+Router::method("patch", "/{bucket}/{key}", [ObjectController::class, "patch"]);
 
 try {
     Router::run();
@@ -35,8 +36,7 @@ try {
     header("HTTP/1.1 500 Bad Request");
     if ($_SERVER['REQUEST_METHOD'] === "HEAD") {
         // header("X-Exception: " . str_replace("\n", "; ", $e->getMessage()));
-    }
-    else {
+    } else {
         echo $e->getMessage();
     }
 }
