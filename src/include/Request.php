@@ -91,11 +91,7 @@ class Request
             return json_decode($this->rawBody);
         }
 
-        if ($contentType === "text/plain") {
-            return $this->rawBody;
-        }
-
-        throw new \Exception("[Request] Unsupported body");
+        return $this->rawBody;
     }
 
     public function isAccepted($type, $explicit = false)

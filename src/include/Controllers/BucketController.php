@@ -119,17 +119,10 @@ class BucketController extends BaseController
 
     public function createObject($bucket)
     {
-        Auth::checkBucketAuth($bucket, "create");
-
         $key = self::generateNewKey($bucket);
 
-        $b = Bucket::get($bucket);
-
-        if ($b->createObject($key, $this->request->getBody())) {
-            return $this->response->statusCode(201)->header("Location", "/$bucket/$key");
-        }
-
-        return 500;
+        // Delegate to ObjectController after creating key
+        return (new ObjectController())->create($bucket, $key);
     }
 
     private static function generateNewKey($bucket_name)

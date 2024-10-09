@@ -107,9 +107,9 @@ class Bucket
                     "key",
                     COALESCE(
                         "numeric_value"::varchar,
-                        "binary_value"::varchar,
                         "text_value"
                     ) AS "value",
+                    "binary_value",
                     "objects"."created_at",
                     "mime"
                 FROM objects
@@ -122,6 +122,7 @@ class Bucket
                 'SELECT
                     "key",
                     COALESCE("numeric_value","text_value") AS "value",
+                    "binary_value",
                     "objects"."created_at",
                     "mime"
                 FROM objects
@@ -136,6 +137,9 @@ class Bucket
         $result = $stmt->fetch();
 
         if ($result) {
+            if ($result["binary_value"] !== null) {
+                $result["value"] = $result["binary_value"];
+            }
             return BucketObject::fromArray($result);
         }
 
@@ -183,33 +187,35 @@ class Bucket
 
         $bucket_id = self::getBucketID($this->name);
 
-        $stmt = $db->prepare('INSERT INTO objects ("bucket_id", "key", "text_value", "numeric_value", "mime") VALUES (:bucket_id, :key, :value, :number, :mime)');
+        $stmt = $db->prepare('INSERT INTO objects ("bucket_id", "key", "text_value", "numeric_value", "binary_value", "mime") VALUES (:bucket_id, :key, :value, :number, :binary, :mime)');
 
-        $value = null;
-        $number = null;
+        $stmt->bindParam(":bucket_id", $bucket_id);
+        $stmt->bindParam(":key", $key);
+        $null = null;
+        $stmt->bindParam(":value", $null, PDO::PARAM_NULL);
+        $stmt->bindParam(":number", $null, PDO::PARAM_NULL);
+        $stmt->bindParam(":binary", $null, PDO::PARAM_NULL);
 
-        if (is_array($object) || is_object($object)) {
-            $value = json_encode($object);
+        if (str_contains($object, "\x00")) {
+            $stmt->bindParam(":binary", $object, PDO::PARAM_LOB);
+        } else if (is_array($object) || is_object($object)) {
+            $stmt->bindParam(":value", json_encode($object));
             if ($mime == null) {
                 $mime = "application/json";
             }
         } else if (is_numeric($object)) {
-            $number = $object;
+            $stmt->bindParam(":number", $object);
         } else {
-            $value = $object;
+            $stmt->bindParam("value", $object);
         }
 
         if ($mime == null) {
             $mime = "text/plain";
         }
 
-        return $stmt->execute([
-            "bucket_id" => $bucket_id,
-            "key" => $key,
-            "value" => $value,
-            "number" => $number,
-            "mime" => $mime,
-        ]);
+        $stmt->bindParam(":mime", $mime);
+
+        return $stmt->execute();
     }
 
     public function editObject(string $key, mixed $object, string $mime)
@@ -230,13 +236,22 @@ class Bucket
         if ($db_mime !== $mime) {
             throw new \Exception("[Bucket] Cannot change the mime type of an object.");
         }
-        if (is_numeric($object)) {
+
+        if (str_contains($object, "\x00")) {
+            $stmt = $db->prepare('UPDATE objects SET "binary_value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
+            $stmt->bindParam(":value", $object, PDO::PARAM_LOB);
+        } else if (is_numeric($object)) {
             $stmt = $db->prepare('UPDATE objects SET "numeric_value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
+            $stmt->bindParam(":value", $object);
         } else {
             $stmt = $db->prepare('UPDATE objects SET "text_value" = :value, "created_at" = CURRENT_TIMESTAMP WHERE "bucket_id" = :id AND "key" = :key');
+            $stmt->bindParam(":value", is_object($object) ? json_encode($object) : $object);
         }
 
-        return $stmt->execute(["id" => $bucket_id, "key" => $key, "value" => is_object($object) ? json_encode($object) : $object]);
+        $stmt->bindParam(":id", $bucket_id);
+        $stmt->bindParam(":key", $key);
+
+        return $stmt->execute();
     }
 
     public function deleteObject(string $key)

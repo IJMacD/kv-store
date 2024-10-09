@@ -39,12 +39,12 @@ class ObjectController extends BaseController
         return $this->response->autoContent($object);
     }
 
-    public function create($bucket, $key)
+    public function create(string $bucket, string $key)
     {
         Auth::checkBucketAuth($bucket, "create");
 
         $bucket = Bucket::get($bucket);
-        return $bucket->createObject($key, $this->request->getBody()) ?
+        return $bucket->createObject($key, $this->request->getBody(), $this->request->getHeader("Content-Type")) ?
             201 : 500;
     }
 
@@ -70,7 +70,7 @@ class ObjectController extends BaseController
             return $bucket->editObject($key, $this->request->getBody(), $this->request->getHeader("Content-Type")) ? 204 : 500;
         }
 
-        return $bucket->createObject($key, $this->request->getBody()) ?
+        return $bucket->createObject($key, $this->request->getBody(), $this->request->getHeader("Content-Type")) ?
             201 : 500;
     }
 

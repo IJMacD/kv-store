@@ -6,6 +6,7 @@ class Response
 {
     private int $status_code = 200;
     private ?string $content = null;
+    private $content_stream = null;
     private $headers = [
         "Access-Control-Allow-Origin" => "*",
     ];
@@ -31,7 +32,7 @@ class Response
         return $this;
     }
 
-    public function setContent(string $content, string $content_type = "text/plain", int $status_code = null)
+    public function setContent(mixed $content, string $content_type = "text/plain", int $status_code = null)
     {
         if ($status_code) {
             $this->status_code = $status_code;
@@ -39,9 +40,17 @@ class Response
 
         $this->headers["Content-Type"] = $content_type;
 
-        $this->content = $content;
+        if (is_string($content)) {
+            $this->content = $content;
+            return $this;
+        }
 
-        return $this;
+        if (is_resource($content)) {
+            $this->content_stream = $content;
+            return $this;
+        }
+
+        throw new \Exception("Content must be a string or a resource");
     }
 
     public function getContent()
@@ -134,24 +143,26 @@ class Response
 
     public function autoContent(mixed $content, $request = new Request(), int $status_code = null, string $mime_hint = null)
     {
-        if ($request->isAccepted("application/json", true)) {
-            return $this->json($content, numeric_check: true, status_code: $status_code);
-        }
+        if (str_starts_with($mime_hint, "text/")) {
+            if ($request->isAccepted("application/json", true)) {
+                return $this->json($content, numeric_check: true, status_code: $status_code);
+            }
 
-        if ($request->isAccepted("text/plain", true)) {
-            return $this->text($content, $status_code);
-        }
+            if ($request->isAccepted("text/plain", true)) {
+                return $this->text($content, $status_code);
+            }
 
-        if ($request->isAccepted("text/csv", true)) {
-            return $this->csv($content, status_code: $status_code);
-        }
+            if ($request->isAccepted("text/csv", true)) {
+                return $this->csv($content, status_code: $status_code);
+            }
 
-        if ($request->isAccepted("text/html", true)) {
-            return $this->html($content, status_code: $status_code);
-        }
+            if ($request->isAccepted("text/html", true)) {
+                return $this->html($content, status_code: $status_code);
+            }
 
-        if ($request->isAccepted("text/xml", true)) {
-            return $this->xml($content, status_code: $status_code);
+            if ($request->isAccepted("text/xml", true)) {
+                return $this->xml($content, status_code: $status_code);
+            }
         }
 
         if ($mime_hint === "application/json") {
@@ -179,7 +190,7 @@ class Response
         }
 
         if ($mime_hint) {
-            return $this->setContent((string) $content, $mime_hint, $status_code);
+            return $this->setContent($content, $mime_hint, $status_code);
         }
 
         return $this->text($content, status_code: $status_code);
@@ -216,7 +227,11 @@ class Response
             header("$header: $value");
         }
 
-        echo $this->content;
+        if (is_resource($this->content_stream)) {
+            fpassthru($this->content_stream);
+        } else {
+            echo $this->content;
+        }
     }
 
     private function sendStatusHeader()
