@@ -38,7 +38,9 @@ try {
 } catch (\Exception $e) {
     header("HTTP/1.1 500 Bad Request");
     if ($_SERVER['REQUEST_METHOD'] === "HEAD") {
-        // header("X-Exception: " . str_replace("\n", "; ", $e->getMessage()));
+        if (defined("DEBUG")) {
+            header("X-Exception: " . str_replace("\n", "; ", $e->getMessage()));
+        }
     } else {
         echo $e->getMessage();
     }

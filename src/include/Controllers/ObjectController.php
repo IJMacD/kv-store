@@ -113,6 +113,8 @@ class ObjectController extends BaseController
 
         $delta = (float) $this->request->getBody();
 
-        return $bucket->patchNumericObject($key, $delta) ? 200 : 400;
+        $number = $bucket->patchNumericObject($key, $delta);
+
+        return $this->response->autoContent($number);
     }
 }

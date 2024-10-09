@@ -79,8 +79,7 @@ class Router
                 }
 
                 if (is_array($handler)) {
-                    $obj = new $handler[0];
-                    $response = call_user_func_array([$obj, $handler[1]], $match);
+                    $response = call_user_func_array([new $handler[0], $handler[1]], $match);
                 } else if (is_numeric($handler)) {
                     $response = new Response($handler);
                 } else {

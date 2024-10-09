@@ -268,15 +268,27 @@ class Bucket
         return $stmt->fetchColumn();
     }
 
-    public function patchNumericObject(string $key, float $delta): bool
+    public function patchNumericObject(string $key, float $delta): int
     {
         $db = Database::getSingleton();
 
         $bucket_id = self::getBucketID($this->name);
 
+        if ($db->getDriver() === "pgsql") {
+            $stmt = $db->prepare('UPDATE objects SET numeric_value = numeric_value + :delta WHERE "bucket_id" = :id AND "key" = :key AND numeric_value IS NOT NULL RETURNING numeric_value');
+
+            $stmt->execute(["id" => $bucket_id, "key" => $key, "delta" => $delta]);
+
+            return $stmt->fetchColumn();
+        }
+
         $stmt = $db->prepare('UPDATE objects SET numeric_value = numeric_value + :delta WHERE "bucket_id" = :id AND "key" = :key AND numeric_value IS NOT NULL');
 
-        return $stmt->execute(["id" => $bucket_id, "key" => $key, "delta" => $delta]);
+        $stmt->execute(["id" => $bucket_id, "key" => $key, "delta" => $delta]);
+
+        $stmt = $db->prepare('SELECT numeric_value FROM objects WHERE "bucket_id" = :id AND "key" = :key AND numeric_value IS NOT NULL');
+
+        return $stmt->fetchColumn();
     }
 
     public static function get($bucket_name)

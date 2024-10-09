@@ -170,16 +170,16 @@ class Response
             return $this->html($content, status_code: $status_code);
         }
 
-        if ((is_object($content) || is_array($content)) && $request->isAccepted("application/json")) {
-            return $this->json($content, numeric_check: true, status_code: $status_code);
-        }
+        if (is_object($content) || is_array($content)) {
+            if ($request->isAccepted("application/json")) {
+                return $this->json($content, numeric_check: true, status_code: $status_code);
+            }
 
-        if (!is_string($content)) {
-            throw new \Exception("Error Processing Request");
+            throw new \Exception("No suitable Content-Type match");
         }
 
         if ($mime_hint) {
-            return $this->setContent($content, $mime_hint, $status_code);
+            return $this->setContent((string) $content, $mime_hint, $status_code);
         }
 
         return $this->text($content, status_code: $status_code);
