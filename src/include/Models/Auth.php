@@ -2,132 +2,44 @@
 
 namespace KVStore\Models;
 
+use Exception;
 use KVStore\AuthException;
-use KVStore\BucketAuth;
 use KVStore\Database;
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use KVStore\Request;
+use UnexpectedValueException;
 
 class Auth
 {
-    public static function getBucketAuth($bucket_name)
+    public static function checkBucketAuth(Bucket $bucket, string $access, string $object_key = ""): bool
     {
-        $bucketAuth = new BucketAuth();
+        // Check if bucket is public first
 
-        if (isset($_SERVER['PHP_AUTH_USER'])) {
-            $result = self::getBucketAuthByType($bucket_name, "basic", $_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']);
-            if ($result) {
-                self::resolveAuth($bucketAuth, $result);
-            }
+        if ($access === "read" && $bucket->getReadKey() === null) {
+            return true;
         }
 
-        if (function_exists("apache_request_headers")) {
-            $headers = apache_request_headers();
-            if (isset($headers['Authorization']) && preg_match("/^Bearer ([a-z0-9\/_+-]+)/", $headers['Authorization'], $matches)) {
-                $result = self::getBucketAuthByType($bucket_name, "bearer", null, $matches[1]);
-                if ($result) {
-                    self::resolveAuth($bucketAuth, $result);
-                }
-            }
+        if ($access === "write" && $bucket->getWriteKey() === null) {
+            return true;
         }
 
-        if (isset($_GET['API_KEY'])) {
-            $result = self::getBucketAuthByType($bucket_name, "bearer", null, $_GET['API_KEY']);
-            if ($result) {
-                self::resolveAuth($bucketAuth, $result);
-            }
+        if ($access === "admin" && $bucket->getAdminKey() === null) {
+            return true;
         }
 
-        $result = self::getBucketAuthByType($bucket_name, "public");
-        if ($result) {
-            self::resolveAuth($bucketAuth, $result);
+        // If it's not public, then we need to see if the user provided an
+        // access token via any of the permitted methods.
+        $token = self::getRequestToken();
+
+        // If the token is actually a JWT then perform custom verification.
+        if (self::isJWT($token)) {
+            return self::verifyJWT($bucket, $object_key, $access, $token);
         }
 
-        return $bucketAuth;
-    }
-
-
-    private static function getBucketAuthByType($bucket_name, $type, $identifier = null, $secret = null)
-    {
-        $db = Database::getSingleton();
-
-        $sql =
-            'SELECT
-                can_list,
-                can_read,
-                can_create,
-                can_edit,
-                can_delete,
-                can_admin
-            FROM auth
-                JOIN buckets USING (bucket_id)
-            WHERE
-                "bucket_name" = :bucket_name AND "auth_type" = :type';
-
-        $params = ["bucket_name" => $bucket_name, "type" => $type];
-
-        if ($type === "basic") {
-            $sql .= ' AND "identifier" = :identifier';
-            $params["identifier"] = $identifier;
-            $sql = str_replace("SELECT", 'SELECT "secret",', $sql);
-
-            $stmt = $db->prepare($sql);
-            $stmt->execute($params);
-            $result = $stmt->fetch();
-
-            if ($result && password_verify($secret, $result['secret'])) {
-                unset($result['secret']);
-                return $result;
-            }
-
-            return false;
-        }
-
-        if ($type === "bearer") {
-            $sql .= ' AND "secret" = :secret';
-            $params["secret"] = $secret;
-
-            $stmt = $db->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetch();
-        }
-
-        if ($type === "public") {
-            $stmt = $db->prepare($sql);
-            $stmt->execute($params);
-            return $stmt->fetch();
-        }
-
-        throw new \Exception("[Database] Unrecognised Auth Type $type");
-    }
-
-    private static function checkBucketAuthByTypeExists($bucket_name, $type)
-    {
-        $db = Database::getSingleton();
-
-        $stmt = $db->prepare(
-            'SELECT COUNT(*)
-            FROM auth
-                JOIN buckets USING (bucket_id)
-            WHERE "bucket_name" = :bucket_name AND "auth_type" = :auth_type'
-        );
-        $stmt->execute(["bucket_name" => $bucket_name, "auth_type" => $type]);
-
-        return $stmt->fetchColumn() > 0;
-    }
-
-    public static function checkBucketAuth($bucket_name, $type)
-    {
-        $bucketAuth = self::getBucketAuth($bucket_name);
-
-        if (!$bucketAuth->{$type}) {
-            if (self::checkBucketAuthByTypeExists($bucket_name, "basic")) {
-                header("HTTP/1.1 401 Unauthorized");
-                header("WWW-Authenticate: Basic realm=\"KV Store\"");
-            } else {
-                header("HTTP/1.1 403 Forbidden");
-            }
-
-            throw new AuthException("Not permitted to $type objects in $bucket_name");
-        }
+        // Otherwise, verify the key against the hashed values in the database.
+        return self::verifyKey($bucket, $access, $token);
     }
 
     public static function checkGodAuth()
@@ -151,93 +63,93 @@ class Auth
         throw new AuthException("Forbidden");
     }
 
-    public static function addBucketAuth(string $bucket_name, string $auth_type, BucketAuth $auth_object, $identifier = null, $secret = null)
+    public static function createBucketToken(Bucket $bucket, array $permissions, string $prefix = "", int $ttl = 86400 * 7 * 52): string
     {
-        $db = Database::getSingleton();
+        $secret_key = $bucket->getSecretKey();
 
-        $bucket_id = Bucket::getBucketID($bucket_name);
+        $request = new Request();
 
-        $stmt = $db->prepare(
-            'INSERT INTO auth
-                ("bucket_id", "auth_type", "identifier", "secret", "can_list", "can_read", "can_create", "can_edit", "can_delete", "can_admin")
-            VALUES
-                (:bucket_id, :auth_type, :identifier, :secret, :can_list, :can_read, :can_create, :can_edit, :can_delete, :can_admin)'
-        );
+        $payload = [
+            'iss' => 'http://' . $request->getHost(),
+            'aud' => 'http://' . $request->getHost(),
+            'iat' => time(),
+            'exp' => time() + $ttl,
+            'bucket' => $bucket->name,
+            'prefix' => $prefix,
+            'permissions' => $permissions,
+        ];
 
-        $secret_crypt = $secret ? password_hash($secret, PASSWORD_DEFAULT) : null;
-
-        return $stmt->execute([
-            "bucket_id"     => $bucket_id,
-            "auth_type"     => $auth_type,
-            "identifier"    => $identifier,
-            "secret"        => $secret_crypt,
-            "can_list"      => $auth_object->list ? 1 : 0,
-            "can_read"      => $auth_object->read ? 1 : 0,
-            "can_create"    => $auth_object->create ? 1 : 0,
-            "can_edit"      => $auth_object->edit ? 1 : 0,
-            "can_delete"    => $auth_object->delete ? 1 : 0,
-            "can_admin"     => $auth_object->admin ? 1 : 0,
-        ]);
+        return JWT::encode($payload, $secret_key, 'HS256');
     }
 
-
-    public static function removeBucketAuth($bucket_name, $auth_type, $identifier = null, $secret = null)
+    private static function getRequestToken(): string
     {
-        $db = Database::getSingleton();
-
-        $bucket_id = Bucket::getBucketID($bucket_name);
-
-        if ($auth_type === "public") {
-            $stmt = $db->prepare(
-                'DELETE FROM auth
-                WHERE "bucket_id" = :bucket_id
-                    AND "auth_type" = :auth_type'
-            );
-            return $stmt->execute(["bucket_id" => $bucket_id, "auth_type" => $auth_type]);
+        if (isset($_SERVER['PHP_AUTH_USER'])) {
+            return $_SERVER['PHP_AUTH_USER'];
         }
 
-        if ($auth_type === "basic") {
-            $stmt = $db->prepare(
-                'DELETE FROM auth
-                WHERE "bucket_id" = :bucket_id
-                    AND "auth_type" = :auth_type
-                    AND "identifier" = :identifier'
-            );
-            return $stmt->execute(["bucket_id" => $bucket_id, "auth_type" => $auth_type, "identifier" => $identifier]);
+        if (function_exists("apache_request_headers")) {
+            $headers = apache_request_headers();
+            if (isset($headers['Authorization']) && preg_match("/^Bearer ([a-z0-9\/_+-]+)/", $headers['Authorization'], $matches)) {
+                return $matches[1];
+            }
         }
 
-        if ($auth_type === "bearer") {
-            $stmt = $db->prepare(
-                'DELETE FROM auth
-                WHERE "bucket_id" = :bucket_id
-                    AND "auth_type" = :auth_type
-                    AND "secret" = :secret'
-            );
-            return $stmt->execute(["bucket_id" => $bucket_id, "auth_type" => $auth_type, "secret" => $secret]);
+        if (isset($_GET['API_KEY'])) {
+            return $_GET['API_KEY'];
+        }
+
+        if (isset($_GET['access_key'])) {
+            return $_GET['access_key'];
+        }
+
+        return "";
+    }
+
+    private static function isJWT(string $token): bool
+    {
+        $dot_pos = strpos($token, ".");
+
+        if ($dot_pos === false) {
+            return false;
+        }
+
+        try {
+            $header = json_decode(substr($token, 0, $dot_pos));
+
+            return $header->typ === "JWT";
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    private static function verifyJWT(Bucket $bucket, string $object_key, string $access, string $token): bool
+    {
+        $secret_key = $bucket->getSecretKey();
+
+        try {
+            $decoded = JWT::decode($token, new Key($secret_key, "HS256"));
+
+            return str_starts_with($object_key, $decoded->prefix) && in_array($access, $decoded->permissions);
+        } catch (UnexpectedValueException $e) {
+            return false;
+        }
+    }
+
+    private static function verifyKey(Bucket $bucket, string $access, string $key): bool
+    {
+        if ($access === "read") {
+            return password_verify($key, $bucket->getReadKey());
+        }
+
+        if ($access === "write") {
+            return password_verify($key, $bucket->getWriteKey());
+        }
+
+        if ($access === "admin") {
+            return password_verify($key, $bucket->getAdminKey());
         }
 
         return false;
-    }
-
-    private static function resolveAuth(&$auth_object, $db_auth)
-    {
-        if ($db_auth['can_list']) {
-            $auth_object->list = true;
-        }
-        if ($db_auth['can_read']) {
-            $auth_object->read = true;
-        }
-        if ($db_auth['can_create']) {
-            $auth_object->create = true;
-        }
-        if ($db_auth['can_edit']) {
-            $auth_object->edit = true;
-        }
-        if ($db_auth['can_delete']) {
-            $auth_object->delete = true;
-        }
-        if ($db_auth['can_admin']) {
-            $auth_object->admin = true;
-        }
     }
 }

@@ -7,11 +7,18 @@ use KVStore\Models\Bucket;
 
 class ObjectController extends BaseController
 {
-    public function get($bucket, $key)
+    public function get(string $bucket_name, string $key)
     {
-        Auth::checkBucketAuth($bucket, "read");
+        $bucket = Bucket::get($bucket_name);
 
-        $bucket = Bucket::get($bucket);
+        if (is_null($bucket)) {
+            return 404;
+        }
+
+        if (!Auth::checkBucketAuth($bucket, "read", $key)) {
+            return 403;
+        }
+
         $object = $bucket->getObject($key);
 
         if (is_null($object)) {
@@ -23,11 +30,18 @@ class ObjectController extends BaseController
         return $this->response->autoContent($object->value, mime_hint: $object->mime);
     }
 
-    public function getMeta($bucket, $key)
+    public function getMeta(string $bucket_name, string $key)
     {
-        Auth::checkBucketAuth($bucket, "read");
+        $bucket = Bucket::get($bucket_name);
 
-        $bucket = Bucket::get($bucket);
+        if (is_null($bucket)) {
+            return 404;
+        }
+
+        if (!Auth::checkBucketAuth($bucket, "read", $key)) {
+            return 403;
+        }
+
         $object = $bucket->getObject($key);
 
         if (is_null($object)) {
@@ -39,30 +53,50 @@ class ObjectController extends BaseController
         return $this->response->autoContent($object);
     }
 
-    public function create(string $bucket, string $key)
+    public function create(string $bucket_name, string $key)
     {
-        Auth::checkBucketAuth($bucket, "create");
+        $bucket = Bucket::get($bucket_name);
 
-        $bucket = Bucket::get($bucket);
+        if (is_null($bucket)) {
+            return 404;
+        }
+
+        if (!Auth::checkBucketAuth($bucket, "write", $key)) {
+            return 403;
+        }
+
         return $bucket->createObject($key, $this->request->getBody(), $this->request->getHeader("Content-Type")) ?
             201 : 500;
     }
 
 
-    public function update($bucket, $key)
+    public function update(string $bucket_name, string $key)
     {
-        Auth::checkBucketAuth($bucket, "edit");
+        $bucket = Bucket::get($bucket_name);
 
-        $bucket = Bucket::get($bucket);
+        if (is_null($bucket)) {
+            return 404;
+        }
+
+        if (!Auth::checkBucketAuth($bucket, "write", $key)) {
+            return 403;
+        }
+
         return $bucket->editObject($key, $this->request->getBody(), $this->request->getHeader("Content-Type")) ?
             200 : 500;
     }
 
-    public function createOrUpdate($bucket, $key)
+    public function createOrUpdate(string $bucket_name, string $key)
     {
-        Auth::checkBucketAuth($bucket, "create");
+        $bucket = Bucket::get($bucket_name);
 
-        $bucket = Bucket::get($bucket);
+        if (is_null($bucket)) {
+            return 404;
+        }
+
+        if (!Auth::checkBucketAuth($bucket, "write", $key)) {
+            return 403;
+        }
 
         $object = $bucket->getObject($key);
 
@@ -74,20 +108,33 @@ class ObjectController extends BaseController
             201 : 500;
     }
 
-    public function delete($bucket, $key)
+    public function delete(string $bucket_name, string $key)
     {
-        Auth::checkBucketAuth($bucket, "delete");
+        $bucket = Bucket::get($bucket_name);
 
-        $bucket = Bucket::get($bucket);
+        if (is_null($bucket)) {
+            return 404;
+        }
+
+        if (!Auth::checkBucketAuth($bucket, "write", $key)) {
+            return 403;
+        }
 
         return $bucket->deleteObject($key) ? 200 : 500;
     }
 
-    public function head($bucket, $key)
+    public function head(string $bucket_name, string $key)
     {
-        Auth::checkBucketAuth($bucket, "read");
+        $bucket = Bucket::get($bucket_name);
 
-        $bucket = Bucket::get($bucket);
+        if (is_null($bucket)) {
+            return 404;
+        }
+
+        if (!Auth::checkBucketAuth($bucket, "read", $key)) {
+            return 403;
+        }
+
         $object = $bucket->getObject($key);
 
         if (is_null($object)) {
@@ -105,11 +152,17 @@ class ObjectController extends BaseController
         return 200;
     }
 
-    public function patch($bucket, $key)
+    public function patch(string $bucket_name, string $key)
     {
-        Auth::checkBucketAuth($bucket, "edit");
+        $bucket = Bucket::get($bucket_name);
 
-        $bucket = Bucket::get($bucket);
+        if (is_null($bucket)) {
+            return 404;
+        }
+
+        if (!Auth::checkBucketAuth($bucket, "write", $key)) {
+            return 403;
+        }
 
         $delta = (float) $this->request->getBody();
 

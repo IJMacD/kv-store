@@ -12,6 +12,20 @@ class Request
         return strtolower($_SERVER['REQUEST_METHOD']);
     }
 
+    public function getHost()
+    {
+        if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+            return $_SERVER['HTTP_X_FORWARDED_HOST'];
+        }
+
+        return $_SERVER['HTTP_HOST'];
+    }
+
+    public function getPath()
+    {
+        return $_SERVER['REDIRECT_URI'];
+    }
+
     public function getRequestParam($name, $default = null)
     {
         if (isset($_REQUEST[$name])) {

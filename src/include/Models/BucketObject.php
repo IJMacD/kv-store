@@ -6,10 +6,10 @@ use KVStore\DateTimeJSON;
 
 class BucketObject
 {
-    var string $key;
-    var mixed $value;
-    var DateTimeJSON $created;
-    var string $mime;
+    public readonly string $key;
+    public readonly mixed $value;
+    public readonly DateTimeJSON $created;
+    public readonly string $mime;
 
     function __toString()
     {

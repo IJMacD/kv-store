@@ -2,6 +2,7 @@
 
 namespace KVStore;
 
+use KVStore\Controllers\DebugController;
 use KVStore\Controllers\BucketController;
 use KVStore\Controllers\ObjectController;
 use KVStore\Controllers\RecoverController;
@@ -13,6 +14,11 @@ include "include/bootstrap.php";
 
 // WelcomeController
 Router::get("/",                            [WelcomeController::class, "index"]);
+
+if (defined("DEBUG")) {
+    // DebugController
+    Router::get("/debug",                   [DebugController::class, "debug"]);
+}
 
 // RecoverController
 Router::post("/recover",                    [RecoverController::class, "recover"]);

@@ -78,6 +78,9 @@ class Router
                     header("X-Route-Match: " . ($i + 1) . '/' . count($routes));
                 }
 
+                // Only use positional arguments rather than named arguments
+                $match = array_values($match);
+
                 if (is_array($handler)) {
                     $response = call_user_func_array([new $handler[0], $handler[1]], $match);
                 } else if (is_numeric($handler)) {
