@@ -50,6 +50,11 @@ class Response
             return $this;
         }
 
+        if (is_numeric($content)) {
+            $this->content = (string) $content;
+            return $this;
+        }
+
         throw new \Exception("Content must be a string or a resource");
     }
 
@@ -143,7 +148,7 @@ class Response
 
     public function autoContent(mixed $content, $request = new Request(), int $status_code = null, string $mime_hint = null)
     {
-        if (str_starts_with($mime_hint, "text/")) {
+        if (!is_null($mime_hint) && str_starts_with($mime_hint, "text/")) {
             if ($request->isAccepted("application/json", true)) {
                 return $this->json($content, numeric_check: true, status_code: $status_code);
             }

@@ -8,17 +8,61 @@ use PDO;
 
 class Bucket
 {
-    var $name;
+    public readonly string $name;
 
-    private function __construct($bucket_name)
+    private function __construct(string $bucket_name)
     {
         $this->name = $bucket_name;
+    }
+
+    public function getReadKey(): string|null
+    {
+        $db = Database::getSingleton();
+
+        $stmt = $db->prepare("SELECT read_key_hash FROM buckets WHERE bucket_name = :bucket");
+
+        $stmt->execute(["bucket" => $this->name]);
+
+        return $stmt->fetchColumn();
+    }
+
+    public function getWriteKey(): string|null
+    {
+        $db = Database::getSingleton();
+
+        $stmt = $db->prepare("SELECT write_key_hash FROM buckets WHERE bucket_name = :bucket");
+
+        $stmt->execute(["bucket" => $this->name]);
+
+        return $stmt->fetchColumn();
+    }
+
+    public function getAdminKey(): string|null
+    {
+        $db = Database::getSingleton();
+
+        $stmt = $db->prepare("SELECT admin_key_hash FROM buckets WHERE bucket_name = :bucket");
+
+        $stmt->execute(["bucket" => $this->name]);
+
+        return $stmt->fetchColumn();
+    }
+
+    public function getSecretKey(): string|null
+    {
+        $db = Database::getSingleton();
+
+        $stmt = $db->prepare("SELECT secret_key FROM buckets WHERE bucket_name = :bucket");
+
+        $stmt->execute(["bucket" => $this->name]);
+
+        return $stmt->fetchColumn();
     }
 
     /**
      * Get an array of keys in this bucket
      */
-    public function getObjectKeys($since = null, $limit = 10000, $prefix = null)
+    public function getObjectKeys(string $since = null, $limit = 10000, string $prefix = null)
     {
         $db = Database::getSingleton();
 
@@ -306,7 +350,7 @@ class Bucket
         return $stmt->fetchColumn();
     }
 
-    public static function get($bucket_name)
+    public static function get(string $bucket_name)
     {
         $db = Database::getSingleton();
 
@@ -321,7 +365,7 @@ class Bucket
         return null;
     }
 
-    public static function list($email, $label = null)
+    public static function list(string $email, string $label = null)
     {
         $db = Database::getSingleton();
 
@@ -344,15 +388,32 @@ class Bucket
         return [];
     }
 
-    public static function create($bucket_name, $email = null)
+    public static function create(string $bucket_name, string $email = null, $admin_key = null, $read_key = null, $write_key = null, $secret_key = null): bool
     {
         $db = Database::getSingleton();
 
-        $stmt = $db->prepare('INSERT INTO buckets ("bucket_name", "email") VALUES (:name, :email)');
-        return $stmt->execute(["name" => $bucket_name, "email" => $email]);
+        $stmt = $db->prepare(`
+            INSERT INTO buckets
+                ("bucket_name", "email", "admin_key_hash", "read_key_hash", "write_key_hash", "secret_key")
+            VALUES
+                (:name, :email, :admin, :read, :write, :secret)
+        `);
+
+        if ($secret_key === null) {
+            $secret_key = bin2hex(random_bytes(48));
+        }
+
+        return $stmt->execute([
+            "name" => $bucket_name,
+            "email" => $email,
+            "admin" => password_hash($admin_key, PASSWORD_BCRYPT),
+            "read" => password_hash($read_key, PASSWORD_BCRYPT),
+            "write" => password_hash($write_key, PASSWORD_BCRYPT),
+            "secret" => $secret_key,
+        ]);
     }
 
-    public static function getBucketID($bucket_name)
+    public static function getBucketID(string $bucket_name)
     {
         $db = Database::getSingleton();
 
