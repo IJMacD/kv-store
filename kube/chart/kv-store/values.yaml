@@ -21,6 +21,14 @@ web:
     server: email-smtp.us-east-1.amazonaws.com
     user: AKIAWKM4MGHVDE3VTL5K
   existingSecret:
+  ingress:
+    enabled: false
+  gateway:
+    enabled: true
+    parentRef:
+      name: gateway
+      namespace: default
+      sectionName: https
   tls:
     enabled: false
   local:
