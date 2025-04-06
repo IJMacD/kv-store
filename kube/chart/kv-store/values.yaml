@@ -8,10 +8,10 @@ mariadb:
   primary:
     resources:
       requests:
-        memory: 108Mi
+        memory: 256Mi
         cpu: 25m
       limits:
-        memory: 108Mi
+        memory: 256Mi
 web:
   replicaCount: 1
   repository:
